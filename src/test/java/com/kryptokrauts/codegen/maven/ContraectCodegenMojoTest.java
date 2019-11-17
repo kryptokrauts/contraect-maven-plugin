@@ -23,10 +23,30 @@ public class ContraectCodegenMojoTest {
 
 	@BeforeAll
 	public static void initConfig() {
+		ABIJsonDescription abiJsonDescription = ABIJsonDescription.builder()
+				.build();
 		config = CodegenConfiguration.builder()
 				.compilerBaseUrl("http://compiler.aelocal:3080")
 				.targetPath(targetPath).targetPackage(targetPackage)
-				.datatypePackage(targetPackage + ".datatypes").build();
+				.datatypePackage(targetPackage + ".datatypes").numTrials(60)
+				.initFunctionName(abiJsonDescription.getInitFunctionName())
+				.abiJSONFunctionArgumentElement(
+						abiJsonDescription.getAbiJSONFunctionArgumentElement())
+				.abiJSONFunctionArgumentNameElement(abiJsonDescription
+						.getAbiJSONFunctionArgumentNameElement())
+				.abiJSONFunctionArgumentTypeElement(abiJsonDescription
+						.getAbiJSONFunctionArgumentTypeElement())
+				.abiJSONFunctionsElement(
+						abiJsonDescription.getAbiJSONFunctionsElement())
+				.abiJSONFunctionsNameElement(
+						abiJsonDescription.getAbiJSONFunctionsNameElement())
+				.abiJSONFunctionsReturnTypeElement(abiJsonDescription
+						.getAbiJSONFunctionsReturnTypeElement())
+				.abiJSONFunctionStatefulElement(
+						abiJsonDescription.getAbiJSONFunctionStatefulElement())
+				.abiJSONNameElement(abiJsonDescription.getAbiJSONNameElement())
+				.abiJSONRootElement(abiJsonDescription.getAbiJSONRootElement())
+				.build();
 	}
 
 	@Test
@@ -37,6 +57,9 @@ public class ContraectCodegenMojoTest {
 
 		generator.generate(
 				new File("src/test/resources/contracts/aes/SophiaTypes.aes")
+						.getAbsolutePath());
+		generator.generate(
+				new File("src/test/resources/contracts/aes/CryptoHamster.aes")
 						.getAbsolutePath());
 	}
 

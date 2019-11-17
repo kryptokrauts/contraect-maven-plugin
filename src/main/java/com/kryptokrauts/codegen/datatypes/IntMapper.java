@@ -8,8 +8,8 @@ import com.squareup.javapoet.CodeBlock;
 public class IntMapper extends AbstractSophiaTypeMapper {
 
 	@Override
-	public CodeBlock getReturnStatement(String resultToReturn) {
-		return CodeBlock.builder().addStatement("return new $T($S)",
+	public CodeBlock getReturnStatement(Object resultToReturn) {
+		return CodeBlock.builder().addStatement("return new $T($L.toString())",
 				BigInteger.class, resultToReturn).build();
 	}
 

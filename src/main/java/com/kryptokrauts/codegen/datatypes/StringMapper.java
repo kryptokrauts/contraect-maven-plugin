@@ -7,9 +7,9 @@ import com.squareup.javapoet.CodeBlock;
 public class StringMapper extends AbstractSophiaTypeMapper {
 
 	@Override
-	public CodeBlock getReturnStatement(String resultToReturn) {
-		return CodeBlock.builder().addStatement("return $S", resultToReturn)
-				.build();
+	public CodeBlock getReturnStatement(Object resultToReturn) {
+		return CodeBlock.builder()
+				.addStatement("return $L.toString()", resultToReturn).build();
 	}
 
 	@Override

@@ -7,9 +7,11 @@ import com.squareup.javapoet.CodeBlock;
 public class BoolMapper extends AbstractSophiaTypeMapper {
 
 	@Override
-	public CodeBlock getReturnStatement(String resultToReturn) {
-		return CodeBlock.builder().addStatement("return $T.valueOf($S)",
-				Boolean.class, resultToReturn).build();
+	public CodeBlock getReturnStatement(Object resultToReturn) {
+		return CodeBlock.builder()
+				.addStatement("return $T.valueOf($L.toString())", Boolean.class,
+						resultToReturn)
+				.build();
 	}
 
 	@Override

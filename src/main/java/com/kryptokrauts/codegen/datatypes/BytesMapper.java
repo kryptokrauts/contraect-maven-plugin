@@ -7,7 +7,7 @@ import com.squareup.javapoet.CodeBlock;
 public class BytesMapper extends AbstractSophiaTypeMapper {
 
 	@Override
-	public CodeBlock getReturnStatement(String resultToReturn) {
+	public CodeBlock getReturnStatement(Object resultToReturn) {
 		// @TODO split result into list
 		return CodeBlock.builder()
 				.addStatement("return new $T($L)", Byte[].class, resultToReturn)

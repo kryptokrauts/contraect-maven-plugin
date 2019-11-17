@@ -13,7 +13,6 @@ import com.kryptokrauts.aeternity.sdk.service.aeternity.impl.AeternityService;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import lombok.Builder;
-import lombok.Builder.Default;
 import lombok.Getter;
 
 @Builder
@@ -31,23 +30,30 @@ public class CodegenConfiguration {
 
 	private String targetPath;
 
+	private int numTrials;
+
+	private String initFunctionName;
 	/*
 	 * JSON values for contract abi
 	 */
-	@Default
-	private String abiJSONRootElement = "contract";
 
-	@Default
-	private String abiJSONNameElement = "name";
+	private String abiJSONRootElement;
 
-	@Default
-	private String abiJSONFunctionsElement = "functions";
+	private String abiJSONNameElement;
 
-	@Default
-	private String abiJSONFunctionsNameElement = "name";
+	private String abiJSONFunctionsElement;
 
-	@Default
-	private String abiJSONFunctionsReturnTypeElement = "returns";
+	private String abiJSONFunctionsNameElement;
+
+	private String abiJSONFunctionsReturnTypeElement;
+
+	private String abiJSONFunctionArgumentElement;
+
+	private String abiJSONFunctionArgumentTypeElement;
+
+	private String abiJSONFunctionArgumentNameElement;
+
+	private String abiJSONFunctionStatefulElement;
 
 	public AeternityService getAeternityService() {
 		if (aeternityService == null) {

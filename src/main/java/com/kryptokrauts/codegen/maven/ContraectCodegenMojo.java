@@ -47,6 +47,13 @@ public class ContraectCodegenMojo extends AbstractMojo {
 	private String compilerBaseUrl;
 
 	/**
+	 * number of trials to wait for a transaction to be mined (stateful calls,
+	 * deploy)
+	 */
+	@Parameter(defaultValue = "60")
+	private int numTrials;
+
+	/**
 	 * the directories to be scanned for contracts
 	 */
 	@Parameter(required = true)
@@ -57,6 +64,12 @@ public class ContraectCodegenMojo extends AbstractMojo {
 	 */
 	@Parameter(defaultValue = "aes")
 	private String contractSuffix;
+
+	/**
+	 * describes the abi json tags which are parsed during contract generation
+	 */
+	@Parameter
+	private ABIJsonDescription abiJsonDescription;
 
 	// the list of contract files to process
 	List<String> aesFiles = new LinkedList<String>();
@@ -71,15 +84,34 @@ public class ContraectCodegenMojo extends AbstractMojo {
 	public void execute() throws MojoExecutionException {
 		logMessage("starting kryptokrauts contraect generator");
 		config = CodegenConfiguration.builder().compilerBaseUrl(compilerBaseUrl)
-				.targetPackage(targetPackage).targetPath(targetPath).build();
+				.targetPackage(targetPackage).targetPath(targetPath)
+				.datatypePackage(datatypePackage).numTrials(numTrials)
+				.initFunctionName(abiJsonDescription.getInitFunctionName())
+				.abiJSONFunctionArgumentElement(
+						abiJsonDescription.getAbiJSONFunctionArgumentElement())
+				.abiJSONFunctionArgumentNameElement(abiJsonDescription
+						.getAbiJSONFunctionArgumentNameElement())
+				.abiJSONFunctionArgumentTypeElement(abiJsonDescription
+						.getAbiJSONFunctionArgumentTypeElement())
+				.abiJSONFunctionsElement(
+						abiJsonDescription.getAbiJSONFunctionsElement())
+				.abiJSONFunctionsNameElement(
+						abiJsonDescription.getAbiJSONFunctionsNameElement())
+				.abiJSONFunctionsReturnTypeElement(abiJsonDescription
+						.getAbiJSONFunctionsReturnTypeElement())
+				.abiJSONFunctionStatefulElement(
+						abiJsonDescription.getAbiJSONFunctionStatefulElement())
+				.abiJSONNameElement(abiJsonDescription.getAbiJSONNameElement())
+				.abiJSONRootElement(abiJsonDescription.getAbiJSONRootElement())
+				.build();
 		contraectGenerator = new ContraectGenerator(config);
 
 		generateDefaultDatatypes();
 		gatherContractFiles();
-		processAESFiles();
+		processContractFiles();
 	}
 
-	private void processAESFiles() throws MojoExecutionException {
+	private void processContractFiles() throws MojoExecutionException {
 		for (String aesFile : aesFiles) {
 			contraectGenerator.generate(aesFile);
 		}

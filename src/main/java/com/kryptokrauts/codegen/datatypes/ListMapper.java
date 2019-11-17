@@ -15,7 +15,7 @@ import io.vertx.core.json.JsonObject;
 public class ListMapper extends AbstractSophiaTypeMapper {
 
 	@Override
-	public CodeBlock getReturnStatement(String resultToReturn) {
+	public CodeBlock getReturnStatement(Object resultToReturn) {
 		// @TODO split result into list
 		return CodeBlock.builder()
 				.addStatement("return $T.of($L)", Arrays.class, resultToReturn)

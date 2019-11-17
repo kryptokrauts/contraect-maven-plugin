@@ -1,0 +1,32 @@
+version: '3'
+services:
+  node:
+    image: aeternity/aeternity:${AETERNITY_TAG}
+    ports:
+      - "3013:3013"
+      - "3113:3113"
+    environment:
+      AETERNITY_CONFIG: /home/aeternity/aeternity.yaml
+    command: >
+      bin/aeternity
+      console
+      -noinput
+      -aecore expected_mine_rate 250
+      -aehttp enable_debug_endpoints true
+    volumes:
+      - ${PWD}/docker/aeternity.yaml:/home/aeternity/aeternity.yaml
+      - ${PWD}/docker/keys/node:/home/aeternity/node/keys
+      - ${PWD}/docker/accounts_test.json:/home/aeternity/node/data/aecore/.genesis/accounts_test.json
+
+  compiler:
+    image: aeternity/aesophia_http:${SOPHIA_COMPILER_TAG}
+    ports:
+      - "3080:3080"
+
+  proxy:
+    image: nginx:${NGINX_TAG}
+    ports:
+      - "80:80"
+    volumes:
+      - ${PWD}/docker/nginx-default.conf:/etc/nginx/conf.d/default.conf
+      - ${PWD}/docker/nginx-cors.conf:/etc/nginx/cors.conf

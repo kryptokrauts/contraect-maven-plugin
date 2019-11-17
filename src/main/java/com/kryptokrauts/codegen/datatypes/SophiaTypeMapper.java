@@ -6,7 +6,7 @@ import com.squareup.javapoet.CodeBlock;
 
 public interface SophiaTypeMapper {
 
-	public CodeBlock getReturnStatement(String resultToReturn);
+	public CodeBlock getReturnStatement(Object resultToReturn);
 
 	public Type getJavaType();
 
