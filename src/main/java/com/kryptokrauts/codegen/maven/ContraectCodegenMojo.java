@@ -83,6 +83,9 @@ public class ContraectCodegenMojo extends AbstractMojo {
 	@Override
 	public void execute() throws MojoExecutionException {
 		logMessage("starting kryptokrauts contraect generator");
+		if (abiJsonDescription == null) {
+			abiJsonDescription = new ABIJsonDescription();
+		}
 		config = CodegenConfiguration.builder().compilerBaseUrl(compilerBaseUrl)
 				.targetPackage(targetPackage).targetPath(targetPath)
 				.datatypePackage(datatypePackage).numTrials(numTrials)

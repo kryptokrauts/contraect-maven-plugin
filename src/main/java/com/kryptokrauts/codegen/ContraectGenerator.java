@@ -234,8 +234,7 @@ public class ContraectGenerator {
 				ParameterSpec.builder(AeternityServiceConfiguration.class,
 						PARAM_AETERNITY_SERVICE_CONFIGURATION).build(),
 				ParameterSpec.builder(String.class, GCV_DEPLOYED_CONTRACT_ID)
-						.build(),
-				ParameterSpec.builder(int.class, GCV_NUM_TRIALS).build()))
+						.build()))
 				.addCode(codeBlock).addModifiers(Modifier.PUBLIC)
 				.addException(RuntimeException.class).build();
 	}
