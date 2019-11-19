@@ -23,8 +23,7 @@ public class ContraectCodegenMojoTest {
 
 	@BeforeAll
 	public static void initConfig() {
-		ABIJsonDescription abiJsonDescription = ABIJsonDescription.builder()
-				.build();
+		ABIJsonDescription abiJsonDescription = new ABIJsonDescription();
 		config = CodegenConfiguration.builder()
 				.compilerBaseUrl("http://compiler.aelocal:3080")
 				.targetPath(targetPath).targetPackage(targetPackage)

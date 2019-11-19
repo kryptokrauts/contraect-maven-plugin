@@ -119,10 +119,10 @@ public class ContraectGenerator {
 			this.generateContractClass(
 					this.checkABI(abiContent.getEncodedAci()), aesContent);
 		} else {
-			throw new MojoExecutionException(
-					String.format("Cannot create ABI for contract %s: %s\n%s",
-							aesFile, abiContent.getAeAPIErrorMessage(),
-							abiContent.getRootErrorMessage()));
+			throw new MojoExecutionException(String.format(
+					"Cannot create ABI for contract code generation %s: %s\n%s",
+					aesFile, abiContent.getAeAPIErrorMessage(),
+					abiContent.getRootErrorMessage()));
 		}
 	}
 
@@ -136,8 +136,12 @@ public class ContraectGenerator {
 	 */
 	private JsonObject checkABI(Object abiContent)
 			throws MojoExecutionException {
-		return JsonObject.mapFrom(abiContent)
-				.getJsonObject(config.getAbiJSONRootElement());
+		return Optional
+				.ofNullable(JsonObject.mapFrom(abiContent)
+						.getJsonObject(config.getAbiJSONRootElement()))
+				.orElseThrow(() -> new MojoExecutionException(String.format(
+						"Invalid json or configuration - cannot parse root element %s from json %s",
+						config.getAbiJSONRootElement(), abiContent)));
 	}
 
 	/**
