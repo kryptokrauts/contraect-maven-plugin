@@ -702,8 +702,9 @@ public class ContraectGenerator {
 						.addStatement("$L.add($N(($T) $L))", VAR_ARGUMENTS,
 								GCPM_GENERATE_MAP_PARAM, Map.class, VAR_PARAM)
 						.nextControlFlow("else")
-						.addStatement("$L.add($L.toString())", VAR_ARGUMENTS,
-								VAR_PARAM)
+						.addStatement("$L.add($N+$L.toString()+$N)",
+								VAR_ARGUMENTS, "\"\\\"\"", VAR_PARAM,
+								"\"\\\"\"")
 						.endControlFlow().endControlFlow().endControlFlow()
 						.addStatement(
 								"return $L.compiler.blockingEncodeCalldata($L,$L,$L)",
