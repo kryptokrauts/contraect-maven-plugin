@@ -10,7 +10,7 @@ A community developed tool to generate contracts from sophia source code and int
 
 ## Documentation
 The documentation is hosted on gitbook:
-- https://kryptokrauts.gitbook.io/contraect-maven-plugin/
+- https://kryptokrauts.gitbook.io/aepp-sdk-java/contraect-maven-plugin/
 
 ## License
 
