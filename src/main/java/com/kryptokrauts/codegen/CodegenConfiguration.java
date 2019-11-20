@@ -5,12 +5,8 @@ import com.kryptokrauts.aeternity.sdk.service.aeternity.AeternityServiceFactory;
 import com.kryptokrauts.aeternity.sdk.service.aeternity.impl.AeternityService;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
-import java.net.URL;
 import lombok.Builder;
 import lombok.Getter;
-import org.apache.maven.plugin.MojoExecutionException;
 
 @Builder
 @Getter
@@ -71,15 +67,5 @@ public class CodegenConfiguration {
                       .compile());
     }
     return aeternityService;
-  }
-
-  public void setCompilerBaseUrl(String compilerBaseUrl) throws MojoExecutionException {
-    try {
-      URL url = new URL(compilerBaseUrl);
-      url.toURI();
-    } catch (MalformedURLException | URISyntaxException e) {
-      throw new MojoExecutionException(
-          String.format("Given compilerBaseUrl %s is not a valid parameter", compilerBaseUrl));
-    }
   }
 }
