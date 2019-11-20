@@ -1,12 +1,14 @@
-# contraect maven plugin
-A community developed tool to generate contracts from sophia source code and interact with the æternity blockchain powered by [kryptokrauts.com](https://kryptokrauts.com)!
+# contraect-maven-plugin
+A community developed maven plugin to generate java classes for smart contracts from sophia source code.
+The generated classes make use of the aepp-sdk-java and provide methods to deploy contracts and call the respective entrypoint functions.
 
 ## Limitations
 - support of datatypes is limited to simple types
 - no support of nested types
 
 ## Latest release
- 
+ [ ![Download](https://api.bintray.com/packages/kryptokrauts/maven/contraect-maven-plugin/images/download.svg) ](https://bintray.com/kryptokrauts/maven/contraect-maven-plugin/_latestVersion)
+ - [changelog](docs/changelog.md)
 
 ## Documentation
 The documentation is hosted on gitbook:

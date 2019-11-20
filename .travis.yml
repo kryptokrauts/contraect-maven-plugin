@@ -1,0 +1,63 @@
+language: java
+
+jdk:
+  - openjdk8
+
+services:
+  - docker
+
+cache:
+  directories:
+    - $HOME/.m2
+
+install:
+  - ./travis-install-libsodium.sh
+  - export PKG_CONFIG_PATH=$HOME/libsodium/lib/pkgconfig:$PKG_CONFIG_PATH
+  - export LD_LIBRARY_PATH=$HOME/libsodium/lib:$LD_LIBRARY_PATH
+
+stages:
+  - name: build
+    if: NOT branch = 5-setup-travis-pipeline
+  - name: release
+    if: (NOT type IN (pull_request)) AND (branch = 5-setup-travis-pipeline)
+
+jobs:
+  include:
+    # run integration test and maven build
+    - stage: build
+      script:
+        - docker-compose up -d
+        - mvn clean install
+
+    # publish snapshot to oss.jfrog.org
+#    - stage: snapshot
+#      script:
+#        - wget https://dl.bintray.com/jfrog/jfrog-cli-go/1.7.1/jfrog-cli-linux-amd64/jfrog
+#        - chmod +x jfrog
+#        - ./jfrog rt config --url https://oss.jfrog.org --user $BINTRAY_USER --apikey $BINTRAY_KEY
+#        - ./jfrog rt u "target/*.jar" oss-snapshot-local --build-name=contraect-maven-plugin --build-number=$TRAVIS_BUILD_NUMBER --flat=false
+#        #- ./gradlew artifactoryPublish -x test -Dsnapshot=true -Dbintray.user=$BINTRAY_USER -Dbintray.key=$BINTRAY_KEY -Dbuild.number=$TRAVIS_BUILD_NUMBER
+
+    # release a version
+    - stage: release
+      script:
+        - mvn clean install -DskipTests
+      before_deploy:
+        - VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+        - TAG="v$VERSION"
+        - git config --global user.name "Travis CI"
+        - git config --global user.email "builds@travis-ci.com"
+        - git tag $TAG
+      deploy:
+        - provider: bintray
+          file: "bintray.json"
+          user: $BINTRAY_USER
+          key: $BINTRAY_API_KEY
+        - provider: releases
+          api_key:
+            secure: $GITHUB_OAUTH_TOKEN
+          body: "Please take a look into the [changelog](https://github.com/kryptokrauts/contraect-maven-plugin/blob/${TAG}/docs/changelog.md) for more information about the recent changes."
+          skip_cleanup: true
+          file_glob: true
+          file:
+            - target/*.jar
