@@ -108,6 +108,8 @@ public class ContraectGenerator {
 
 	private MethodSpec GCPM_CREATE_CCM;
 
+	private MethodSpec GCPM_PARAM_CALL_ENC;
+
 	@NonNull
 	private CodegenConfiguration config;
 
@@ -293,7 +295,7 @@ public class ContraectGenerator {
 						DryRunTransactionResult.class, VAR_DR_RESULT,
 						GCPM_DRY_RUN, VAR_CC_MODEL)
 				.addStatement(
-						"$T $L = this.$L.compiler.blockingDecodeCallResult($L,$S,$L.getResult(),$L.getContractCallObject().getReturnValue()).toString()",
+						"$T $L = this.$L.compiler.blockingDecodeCallResult($L,$S,$L.getContractCallObject().getReturnType(),$L.getContractCallObject().getReturnValue()).toString()",
 						Object.class, VAR_RESULT_OBJECT, GCV_AETERNITY_SERVICE,
 						GCV_AES_SOURCECODE, functionName, VAR_DR_RESULT,
 						VAR_DR_RESULT)
@@ -339,7 +341,7 @@ public class ContraectGenerator {
 					.endControlFlow()
 					.addStatement("throw new $T($T.format($S,$L))",
 							RuntimeException.class, String.class,
-							"Post transaction call failed: %o",
+							"Post transaction call failed: %s",
 							VAR_RESULT_OBJECT)
 					.build();
 		}
@@ -359,7 +361,7 @@ public class ContraectGenerator {
 		codeBlock = codeBlock.toBuilder().endControlFlow()
 				.addStatement("throw new $T($T.format($S,$L))",
 						RuntimeException.class, String.class,
-						"DryRun call failed: %o", VAR_RESULT_OBJECT)
+						"DryRun call failed: %s", VAR_RESULT_OBJECT)
 				.build();
 
 		return MethodSpec.methodBuilder(functionName).addParameters(params)
@@ -449,8 +451,8 @@ public class ContraectGenerator {
 
 	private List<MethodSpec> buildContractPrivateMethods() {
 		return Arrays.asList(buildContractExistsMethod(),
-				buildGetNextNonceMethod(), buildGenerateMapParam(),
-				buildGetCalldataForFunctionMethod(),
+				buildGetParamCallEncoding(), buildGetNextNonceMethod(),
+				buildGenerateMapParam(), buildGetCalldataForFunctionMethod(),
 				buildCreateTransactionCallModelMethod(), buildDryRunMethod(),
 				buildWaitForTxMinedMethod(), buildWaitForTxInfoMethod(),
 				buildDeployContractMethod());
@@ -673,6 +675,29 @@ public class ContraectGenerator {
 		return this.GCPM_GENERATE_MAP_PARAM;
 	}
 
+	/**
+	 * method which defines, how to pass simple type to the function call if
+	 * string, enclose in brackets, otherwise just use the value
+	 */
+	private MethodSpec buildGetParamCallEncoding() {
+		String MP_PARAM = "param";
+		this.GCPM_PARAM_CALL_ENC = MethodSpec
+				.methodBuilder("getParamCallEncoding")
+				.addParameter(
+						ParameterSpec.builder(Object.class, MP_PARAM).build())
+				.addCode(CodeBlock.builder()
+						.beginControlFlow("if( $L != null)", MP_PARAM)
+						.beginControlFlow("if($L instanceof $T)", MP_PARAM,
+								String.class)
+						.addStatement("return \"\\\"\"+$L+\"\\\"\"", MP_PARAM)
+						.nextControlFlow("else")
+						.addStatement("return $L.toString()", MP_PARAM)
+						.endControlFlow().endControlFlow()
+						.addStatement("return \"\"").build())
+				.returns(String.class).addModifiers(Modifier.PRIVATE).build();
+		return this.GCPM_PARAM_CALL_ENC;
+	}
+
 	private MethodSpec buildGetCalldataForFunctionMethod() {
 		String VAR_ARGUMENTS = "arguments";
 		String VAR_PARAM = "param";
@@ -702,9 +727,8 @@ public class ContraectGenerator {
 						.addStatement("$L.add($N(($T) $L))", VAR_ARGUMENTS,
 								GCPM_GENERATE_MAP_PARAM, Map.class, VAR_PARAM)
 						.nextControlFlow("else")
-						.addStatement("$L.add($N+$L.toString()+$N)",
-								VAR_ARGUMENTS, "\"\\\"\"", VAR_PARAM,
-								"\"\\\"\"")
+						.addStatement("$L.add($N($L))", VAR_ARGUMENTS,
+								GCPM_PARAM_CALL_ENC, VAR_PARAM)
 						.endControlFlow().endControlFlow().endControlFlow()
 						.addStatement(
 								"return $L.compiler.blockingEncodeCalldata($L,$L,$L)",

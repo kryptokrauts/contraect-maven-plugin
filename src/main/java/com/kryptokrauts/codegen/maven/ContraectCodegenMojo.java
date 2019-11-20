@@ -107,7 +107,6 @@ public class ContraectCodegenMojo extends AbstractMojo {
 				.abiJSONNameElement(abiJsonDescription.getAbiJSONNameElement())
 				.abiJSONRootElement(abiJsonDescription.getAbiJSONRootElement())
 				.build();
-		contraectGenerator = new ContraectGenerator(config);
 
 		generateDefaultDatatypes();
 		gatherContractFiles();
@@ -116,6 +115,7 @@ public class ContraectCodegenMojo extends AbstractMojo {
 
 	private void processContractFiles() throws MojoExecutionException {
 		for (String aesFile : aesFiles) {
+			contraectGenerator = new ContraectGenerator(config);
 			contraectGenerator.generate(aesFile);
 		}
 	}
