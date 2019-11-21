@@ -29,15 +29,6 @@ jobs:
         - docker-compose up -d
         - mvn clean install
 
-    # publish snapshot to oss.jfrog.org
-#    - stage: snapshot
-#      script:
-#        - wget https://dl.bintray.com/jfrog/jfrog-cli-go/1.7.1/jfrog-cli-linux-amd64/jfrog
-#        - chmod +x jfrog
-#        - ./jfrog rt config --url https://oss.jfrog.org --user $BINTRAY_USER --apikey $BINTRAY_KEY
-#        - ./jfrog rt u "target/*.jar" oss-snapshot-local --build-name=contraect-maven-plugin --build-number=$TRAVIS_BUILD_NUMBER --flat=false
-#        #- ./gradlew artifactoryPublish -x test -Dsnapshot=true -Dbintray.user=$BINTRAY_USER -Dbintray.key=$BINTRAY_KEY -Dbuild.number=$TRAVIS_BUILD_NUMBER
-
     # release a version
     - stage: release
       script:
