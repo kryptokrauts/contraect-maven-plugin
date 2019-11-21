@@ -43,16 +43,19 @@ jobs:
       script:
         - mvn clean install -DskipTests
       before_deploy:
-        - VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-        - TAG="v$VERSION"
-        - git config --global user.name "Travis CI"
-        - git config --global user.email "builds@travis-ci.com"
-        - git tag $TAG
+        if ! [[ $TAG ]]; then
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout) &&
+          export TAG="v$VERSION" &&
+          git config --global user.name "Travis CI" &&
+          git config --global user.email "builds@travis-ci.com" &&
+          git tag $TAG;
+        fi
       deploy:
         - provider: bintray
           file: "bintray.json"
           user: $BINTRAY_USER
           key: $BINTRAY_API_KEY
+          skip_cleanup: true
         - provider: releases
           api_key:
             secure: $GITHUB_OAUTH_TOKEN
