@@ -17,9 +17,9 @@ install:
 
 stages:
   - name: build
-    if: NOT branch = 5-setup-travis-pipeline
+    if: NOT branch = master
   - name: release
-    if: (NOT type IN (pull_request)) AND (branch = 5-setup-travis-pipeline)
+    if: (NOT type IN (pull_request)) AND (branch = master)
 
 jobs:
   include:
