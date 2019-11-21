@@ -17,7 +17,7 @@ install:
 
 stages:
   - name: build
-    if: NOT branch = master
+    if: (NOT branch = master) AND (tag IS blank)
   - name: release
     if: (NOT type IN (pull_request)) AND (branch = master)
 
