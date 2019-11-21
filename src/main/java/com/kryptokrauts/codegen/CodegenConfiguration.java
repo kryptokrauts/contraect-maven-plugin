@@ -1,15 +1,8 @@
 package com.kryptokrauts.codegen;
 
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
-import java.net.URL;
-
-import org.apache.maven.plugin.MojoExecutionException;
-
 import com.kryptokrauts.aeternity.sdk.service.aeternity.AeternityServiceConfiguration;
 import com.kryptokrauts.aeternity.sdk.service.aeternity.AeternityServiceFactory;
 import com.kryptokrauts.aeternity.sdk.service.aeternity.impl.AeternityService;
-
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import lombok.Builder;
@@ -19,66 +12,60 @@ import lombok.Getter;
 @Getter
 public class CodegenConfiguration {
 
-	private AeternityService aeternityService;
+  private AeternityService aeternityService;
 
-	private String compilerBaseUrl;
+  private String compilerBaseUrl;
 
-	// @TODO - MAYBE ADD CONTRACT NAME TO PACKAGE?
-	private String targetPackage;
+  // @TODO - MAYBE ADD CONTRACT NAME TO PACKAGE?
+  private String targetPackage;
 
-	private String datatypePackage;
+  private String datatypePackage;
 
-	private String targetPath;
+  private String targetPath;
 
-	private int numTrials;
+  private int numTrials;
 
-	private String initFunctionName;
-	/*
-	 * JSON values for contract abi
-	 */
+  private String initFunctionName;
 
-	private String abiJSONRootElement;
+  /*
+   * JSON values for contract abi
+   */
 
-	private String abiJSONNameElement;
+  private String abiJSONRootElement;
 
-	private String abiJSONFunctionsElement;
+  private String abiJSONNameElement;
 
-	private String abiJSONFunctionsNameElement;
+  private String abiJSONFunctionsElement;
 
-	private String abiJSONFunctionsReturnTypeElement;
+  private String abiJSONFunctionsNameElement;
 
-	private String abiJSONFunctionArgumentElement;
+  private String abiJSONFunctionsReturnTypeElement;
 
-	private String abiJSONFunctionArgumentTypeElement;
+  private String abiJSONFunctionArgumentElement;
 
-	private String abiJSONFunctionArgumentNameElement;
+  private String abiJSONFunctionArgumentTypeElement;
 
-	private String abiJSONFunctionStatefulElement;
+  private String abiJSONFunctionArgumentNameElement;
 
-	public AeternityService getAeternityService() {
-		if (aeternityService == null) {
-			VertxOptions options = new VertxOptions();
-			options.getFileSystemOptions().setFileCachingEnabled(false)
-					.setClassPathResolvingEnabled(false);
-			options.getMetricsOptions().setEnabled(false);
-			Vertx vertxInstance = Vertx.vertx(options);
-			aeternityService = new AeternityServiceFactory()
-					.getService(AeternityServiceConfiguration.configure()
-							.vertx(vertxInstance)
-							.compilerBaseUrl(this.compilerBaseUrl).compile());
-		}
-		return aeternityService;
-	}
+  private String abiJSONFunctionStatefulElement;
 
-	public void setCompilerBaseUrl(String compilerBaseUrl)
-			throws MojoExecutionException {
-		try {
-			URL url = new URL(compilerBaseUrl);
-			url.toURI();
-		} catch (MalformedURLException | URISyntaxException e) {
-			throw new MojoExecutionException(String.format(
-					"Given compilerBaseUrl %s is not a valid parameter",
-					compilerBaseUrl));
-		}
-	}
+  public AeternityService getAeternityService() {
+    if (aeternityService == null) {
+      VertxOptions options = new VertxOptions();
+      options
+          .getFileSystemOptions()
+          .setFileCachingEnabled(false)
+          .setClassPathResolvingEnabled(false);
+      options.getMetricsOptions().setEnabled(false);
+      Vertx vertxInstance = Vertx.vertx(options);
+      aeternityService =
+          new AeternityServiceFactory()
+              .getService(
+                  AeternityServiceConfiguration.configure()
+                      .vertx(vertxInstance)
+                      .compilerBaseUrl(this.compilerBaseUrl)
+                      .compile());
+    }
+    return aeternityService;
+  }
 }

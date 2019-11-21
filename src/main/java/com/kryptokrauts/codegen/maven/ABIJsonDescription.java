@@ -1,10 +1,10 @@
 package com.kryptokrauts.codegen.maven;
 
-import org.apache.maven.plugins.annotations.Parameter;
-
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.apache.maven.plugins.annotations.Parameter;
+
 /*
  * describes JSON values for contract abi
  */
@@ -14,71 +14,43 @@ import lombok.Setter;
 @NoArgsConstructor
 public class ABIJsonDescription {
 
-	/*
-	 * name of the init function
-	 */
-	@Parameter(defaultValue = "init")
+  /*
+   * name of the init function
+   */
+  @Parameter(defaultValue = "init")
+  private String initFunctionName = "init";
 
-	private String initFunctionName = "init";
+  /** root contract element */
+  @Parameter(defaultValue = "contract")
+  private String abiJSONRootElement = "contract";
 
-	/**
-	 * root contract element
-	 */
-	@Parameter(defaultValue = "contract")
+  /** json element name of the contract */
+  @Parameter(defaultValue = "name")
+  private String abiJSONNameElement = "name";
 
-	private String abiJSONRootElement = "contract";
+  /** json element name of functions list */
+  @Parameter(defaultValue = "functions")
+  private String abiJSONFunctionsElement = "functions";
+  /** json element name of functions list */
+  @Parameter(defaultValue = "name")
+  private String abiJSONFunctionsNameElement = "name";
+  /** json element name of function return type */
+  @Parameter(defaultValue = "returns")
+  private String abiJSONFunctionsReturnTypeElement = "returns";
 
-	/**
-	 * json element name of the contract
-	 */
-	@Parameter(defaultValue = "name")
+  /** json element name of function arguments */
+  @Parameter(defaultValue = "arguments")
+  private String abiJSONFunctionArgumentElement = "arguments";
 
-	private String abiJSONNameElement = "name";
+  /** json element name of function argument type */
+  @Parameter(defaultValue = "type")
+  private String abiJSONFunctionArgumentTypeElement = "type";
 
-	/**
-	 * json element name of functions list
-	 */
-	@Parameter(defaultValue = "functions")
+  /** json element name of function argument name */
+  @Parameter(defaultValue = "name")
+  private String abiJSONFunctionArgumentNameElement = "name";
 
-	private String abiJSONFunctionsElement = "functions";
-	/**
-	 * json element name of functions list
-	 */
-	@Parameter(defaultValue = "name")
-
-	private String abiJSONFunctionsNameElement = "name";
-	/**
-	 * json element name of function return type
-	 */
-	@Parameter(defaultValue = "returns")
-
-	private String abiJSONFunctionsReturnTypeElement = "returns";
-
-	/**
-	 * json element name of function arguments
-	 */
-	@Parameter(defaultValue = "arguments")
-
-	private String abiJSONFunctionArgumentElement = "arguments";
-
-	/**
-	 * json element name of function argument type
-	 */
-	@Parameter(defaultValue = "type")
-
-	private String abiJSONFunctionArgumentTypeElement = "type";
-
-	/**
-	 * json element name of function argument name
-	 */
-	@Parameter(defaultValue = "name")
-
-	private String abiJSONFunctionArgumentNameElement = "name";
-
-	/**
-	 * json element name for stateful
-	 */
-	@Parameter(defaultValue = "stateful")
-
-	private String abiJSONFunctionStatefulElement = "stateful";
+  /** json element name for stateful */
+  @Parameter(defaultValue = "stateful")
+  private String abiJSONFunctionStatefulElement = "stateful";
 }

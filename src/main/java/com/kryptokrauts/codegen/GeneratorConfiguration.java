@@ -10,9 +10,7 @@ import lombok.ToString;
 @Builder
 public class GeneratorConfiguration {
 
-	@Default
-	private long timeBetweenTransactionChecks = 1000l;
+  @Default private long timeBetweenTransactionChecks = 1000l;
 
-	@Default
-	private int numberOfTrials = 60;
+  @Default private int numberOfTrials = 60;
 }

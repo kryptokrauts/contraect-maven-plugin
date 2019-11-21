@@ -1,15 +1,13 @@
 package com.kryptokrauts.codegen.datatypes;
 
-import java.lang.reflect.Type;
-
 import com.squareup.javapoet.CodeBlock;
+import java.lang.reflect.Type;
 
 public interface SophiaTypeMapper {
 
-	public CodeBlock getReturnStatement(Object resultToReturn);
+  public CodeBlock getReturnStatement(Object resultToReturn);
 
-	public Type getJavaType();
+  public Type getJavaType();
 
-	public boolean applies(Object type);
-
+  public boolean applies(Object type);
 }
