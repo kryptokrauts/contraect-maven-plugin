@@ -12,7 +12,7 @@ The generated classes make use of the aepp-sdk-java and provide methods to deplo
 
 ## Documentation
 The documentation is hosted on gitbook:
-- https://kryptokrauts.gitbook.io/aepp-sdk-java/contraect-maven-plugin/
+- https://kryptokrauts.gitbook.io/contraect-maven-plugin
 
 ## License
 
