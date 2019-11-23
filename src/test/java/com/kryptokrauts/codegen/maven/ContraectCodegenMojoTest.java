@@ -16,7 +16,7 @@ public class ContraectCodegenMojoTest {
 
   private static final String targetPath = "target/generated-sources/contraect";
 
-  private static final String targetPackage = "com.kryptokrauts.generated.contraect";
+  private static final String targetPackage = "com.kryptokrauts.contraect.generated";
 
   private static CodegenConfiguration config;
 
