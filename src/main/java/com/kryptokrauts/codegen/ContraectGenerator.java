@@ -403,7 +403,7 @@ public class ContraectGenerator {
                       paramMap.getString(config.getAbiJSONFunctionArgumentNameElement())));
             });
 
-    return VAR_PARAMS.size() > 0 ? "," + String.join(",", VAR_PARAMS) : "";
+    return VAR_PARAMS.size() > 0 ? String.join(",", VAR_PARAMS) : "";
   }
 
   private List<ParameterSpec> getParameterSpecFromSignature(JsonObject functionDescription) {
@@ -430,6 +430,7 @@ public class ContraectGenerator {
    */
   private MethodSpec buildDeployMethod(JsonObject functionDescription) {
     String VAR_CALLDATA = "calldata";
+    List<ParameterSpec> parameters = new LinkedList<>();
 
     CodeBlock getInitFunctionCalldata =
         CodeBlock.builder()
@@ -452,6 +453,7 @@ public class ContraectGenerator {
                   config.getInitFunctionName(),
                   getParameterFunctionCallFromSignature(functionDescription))
               .build();
+      parameters = this.getParameterSpecFromSignature(functionDescription);
     }
 
     GCPM_DEPLOY =
@@ -461,6 +463,7 @@ public class ContraectGenerator {
                     .add(getInitFunctionCalldata)
                     .addStatement("return this.$N($L)", GCPM_DEPLOY_CONTRACT, VAR_CALLDATA)
                     .build())
+            .addParameters(parameters)
             .returns(String.class)
             .addModifiers(Modifier.PUBLIC)
             .build();
