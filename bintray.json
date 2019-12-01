@@ -3,10 +3,10 @@
     "name": "contraect-maven-plugin",
     "repo": "maven",
     "subject": "kryptokrauts",
-    "desc": "Maven plugin to generate java classes out of contraects and simply deploy and interact with the contraects deployed on the æternity network using the aepp-sdk-java (by kryptokrauts.com).",
+    "desc": "A community developed maven plugin to generate java classes for smart contracts from sophia source code. The generated classes make use of the aepp-sdk-java and provide methods to deploy contracts and call the respective entrypoint functions.",
     "website_url": "https://kryptokrauts.com",
     "issue_tracker_url": "https://github.com/kryptokrauts/contraect-maven-plugin/issues",
-    "vcs_url": "git@github.com:kryptokrauts/contraect-maven-plugin.git",
+    "vcs_url": "https://github.com/kryptokrauts/contraect-maven-plugin.git",
     "licenses": [
       "ISC"
     ],
@@ -22,17 +22,17 @@
     "public_stats": true
   },
   "version": {
-    "name": "0.9.0",
+    "name": "0.9.1",
     "gpgSign": false
   },
   "files": [
     {
       "includePattern": "target/(.*).jar",
-      "uploadPattern": "/com/kryptokrauts/contraect-maven-plugin/0.9.0/$1.jar"
+      "uploadPattern": "/com/kryptokrauts/contraect-maven-plugin/0.9.1/$1.jar"
     },
     {
       "includePattern": "pom.xml",
-      "uploadPattern": "/com/kryptokrauts/contraect-maven-plugin/0.9.0/contraect-maven-plugin-0.9.0.pom"
+      "uploadPattern": "/com/kryptokrauts/contraect-maven-plugin/0.9.1/contraect-maven-plugin-0.9.1.pom"
     }
   ],
   "publish": true
