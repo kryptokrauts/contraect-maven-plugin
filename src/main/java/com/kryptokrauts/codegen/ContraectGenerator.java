@@ -267,7 +267,7 @@ public class ContraectGenerator {
     CodeBlock codeBlock =
         CodeBlock.builder()
             .add(
-                "$T $L = this.$N($S",
+                "$T $L = this.$N($S" + (VAR_PARAMS_STRING.length() > 0 ? "," : ""),
                 ContractCallTransactionModel.class,
                 VAR_CC_MODEL,
                 GCPM_CREATE_CCM,
