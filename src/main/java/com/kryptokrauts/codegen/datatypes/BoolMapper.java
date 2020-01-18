@@ -1,9 +1,7 @@
 package com.kryptokrauts.codegen.datatypes;
 
-import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.TypeName;
-import java.lang.reflect.Type;
 
 public class BoolMapper extends AbstractSophiaTypeMapper {
 
@@ -19,22 +17,12 @@ public class BoolMapper extends AbstractSophiaTypeMapper {
   }
 
   @Override
-  public Type getJavaType() {
-    return Boolean.class;
+  public boolean applies(Object typeString) {
+    return "bool".equalsIgnoreCase(valueToString(typeString));
   }
 
   @Override
-  public boolean applies(Object type) {
-    return "bool".equalsIgnoreCase(getType(type));
-  }
-
-  @Override
-  public TypeName getReturnType(Object valueTypeString) {
+  public TypeName getReturnType(Object typeString) {
     return TypeName.get(Boolean.class);
-  }
-
-  @Override
-  public TypeName getReturnType() {
-    return ClassName.get(Boolean.class);
   }
 }

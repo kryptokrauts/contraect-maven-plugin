@@ -1,9 +1,6 @@
 package com.kryptokrauts.codegen.datatypes;
 
-import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.TypeName;
-import java.lang.reflect.Type;
 import java.math.BigInteger;
 
 public class IntMapper extends AbstractSophiaTypeMapper {
@@ -14,29 +11,13 @@ public class IntMapper extends AbstractSophiaTypeMapper {
   }
 
   @Override
-  public CodeBlock getReturnStatement(Object resultToReturn) {
-    return CodeBlock.builder()
-        .addStatement("return new $T($L.toString())", BigInteger.class, resultToReturn)
-        .build();
-  }
-
-  @Override
-  public Type getJavaType() {
-    return BigInteger.class;
-  }
-
-  @Override
   public boolean applies(Object type) {
-    return "int".equalsIgnoreCase(getType(type));
+    return "int".equalsIgnoreCase(valueToString(type))
+        || TypeName.get(BigInteger.class).equals(type);
   }
 
   @Override
-  public TypeName getReturnType(Object valueTypeString) {
+  public TypeName getReturnType(Object typeString) {
     return TypeName.get(BigInteger.class);
-  }
-
-  @Override
-  public TypeName getReturnType() {
-    return ClassName.get(BigInteger.class);
   }
 }

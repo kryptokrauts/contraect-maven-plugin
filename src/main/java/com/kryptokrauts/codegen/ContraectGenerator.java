@@ -15,24 +15,23 @@ import com.kryptokrauts.aeternity.sdk.service.transaction.domain.DryRunTransacti
 import com.kryptokrauts.aeternity.sdk.service.transaction.domain.PostTransactionResult;
 import com.kryptokrauts.aeternity.sdk.service.transaction.type.model.ContractCallTransactionModel;
 import com.kryptokrauts.aeternity.sdk.service.transaction.type.model.ContractCreateTransactionModel;
-import com.kryptokrauts.codegen.datatypes.DefaultMapper;
-import com.kryptokrauts.codegen.datatypes.SophiaTypeMapper;
+import com.kryptokrauts.codegen.datatypes.TypeResolverRefactored;
+import com.kryptokrauts.runtime.datatypes.DatatypeEncodingHandler;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -73,6 +72,8 @@ public class ContraectGenerator {
 
   private static String GCV_NUM_TRIALS = "numTrials";
 
+  private static String DATATYPE_ENCODING_HANDLER = "datatypeEncodingHandler";
+
   /**
    * ------------------------------
    *
@@ -103,6 +104,8 @@ public class ContraectGenerator {
   private MethodSpec GCPM_PARAM_CALL_ENC;
 
   @NonNull private CodegenConfiguration config;
+
+  private TypeResolverRefactored typeResolver = new TypeResolverRefactored();
 
   public void generate(String aesFile) throws MojoExecutionException {
     String aesContent = readFile(aesFile);
@@ -166,6 +169,12 @@ public class ContraectGenerator {
                   FieldSpec.builder(int.class, GCV_NUM_TRIALS, Modifier.PRIVATE)
                       .initializer("$L", config.getNumTrials())
                       .build())
+              .addField(
+                  FieldSpec.builder(
+                          DatatypeEncodingHandler.class,
+                          DATATYPE_ENCODING_HANDLER,
+                          Modifier.PRIVATE)
+                      .build())
               .addMethods(buildContractPrivateMethods())
               .addMethod(buildConstructor())
               .addMethods(this.buildContractMethods(abiJson))
@@ -207,6 +216,8 @@ public class ContraectGenerator {
                 GCV_AETERNITY_SERVICE,
                 AeternityServiceFactory.class,
                 PARAM_AETERNITY_SERVICE_CONFIGURATION)
+            .addStatement(
+                "this.$L = new $T()", DATATYPE_ENCODING_HANDLER, DatatypeEncodingHandler.class)
             // .addStatement("this.$N()", GCPM_CONTRACT_EXISTS)
             .build();
 
@@ -246,9 +257,11 @@ public class ContraectGenerator {
   private MethodSpec parseFunctionToMethodSpec(JsonObject functionDescription) {
     String VAR_DR_RESULT = "dryRunResult";
     String VAR_RESULT_OBJECT = "resultObject";
+    String VAR_UNWRAPPED_RESULT_OBJECT = "unwrappedResultObject";
     String VAR_CC_MODEL = "contractCallModel";
     String VAR_CC_POST_TX_RESULT = "contractCallPostTxResult";
     String VAR_CC_POST_TX_INFO = "contractCallPostTxInfo";
+    String VAR_ENCODED_PARAM_LIST = "encodedParameterList";
 
     String functionName =
         replaceInvalidChars(functionDescription.getString(config.getAbiJSONFunctionsNameElement()));
@@ -259,18 +272,24 @@ public class ContraectGenerator {
 
     List<ParameterSpec> params = getParameterSpecFromSignature(functionDescription);
 
-    String VAR_PARAMS_STRING = getParameterFunctionCallFromSignature(functionDescription);
+    TypeName resultType =
+        this.mapClass(functionDescription.getValue(config.getAbiJSONFunctionsReturnTypeElement()));
 
     CodeBlock codeBlock =
         CodeBlock.builder()
-            .add(
-                "$T $L = this.$N($S" + (VAR_PARAMS_STRING.length() > 0 ? "," : ""),
+            .addStatement(
+                "$T $L = $T.asList($L)",
+                ParameterizedTypeName.get(List.class, String.class),
+                VAR_ENCODED_PARAM_LIST,
+                Arrays.class,
+                getParameterEncoding(params))
+            .addStatement(
+                "$T $L = this.$N($S,$L)",
                 ContractCallTransactionModel.class,
                 VAR_CC_MODEL,
                 GCPM_CREATE_CCM,
-                functionName)
-            .add(VAR_PARAMS_STRING)
-            .add(");")
+                functionName,
+                VAR_ENCODED_PARAM_LIST)
             .addStatement(
                 "$T $L = this.$N($L)",
                 DryRunTransactionResult.class,
@@ -331,10 +350,12 @@ public class ContraectGenerator {
                   "if($S.equalsIgnoreCase($L.getCallInfo().getReturnType()))",
                   "ok",
                   VAR_CC_POST_TX_INFO)
-              .add(
-                  this.mapReturnTypeFromCall(
-                      functionDescription.getValue(config.getAbiJSONFunctionsReturnTypeElement()),
-                      VAR_RESULT_OBJECT))
+              .addStatement(
+                  "$T $L = $L.getResult()",
+                  Object.class,
+                  VAR_UNWRAPPED_RESULT_OBJECT,
+                  VAR_RESULT_OBJECT)
+              .add(this.mapReturnTypeFromCall(resultType, VAR_UNWRAPPED_RESULT_OBJECT))
               .endControlFlow()
               .addStatement(
                   "throw new $T($T.format($S,$L))",
@@ -350,10 +371,12 @@ public class ContraectGenerator {
       codeBlock =
           codeBlock
               .toBuilder()
-              .add(
-                  this.mapReturnTypeFromCall(
-                      functionDescription.getValue(config.getAbiJSONFunctionsReturnTypeElement()),
-                      VAR_RESULT_OBJECT))
+              .addStatement(
+                  "$T $L = $L.getResult()",
+                  Object.class,
+                  VAR_UNWRAPPED_RESULT_OBJECT,
+                  VAR_RESULT_OBJECT)
+              .add(this.mapReturnTypeFromCall(resultType, VAR_UNWRAPPED_RESULT_OBJECT))
               .build();
     }
 
@@ -373,9 +396,7 @@ public class ContraectGenerator {
         .addParameters(params)
         .addCode(codeBlock)
         .addJavadoc(stateful ? "Stateful function" : "")
-        .returns(
-            this.mapClass(
-                functionDescription.getValue(config.getAbiJSONFunctionsReturnTypeElement())))
+        .returns(resultType)
         .addJavadoc("")
         .addModifiers(Modifier.PUBLIC)
         .build();
@@ -388,6 +409,11 @@ public class ContraectGenerator {
     return value;
   }
 
+  /**
+   * @deprecated replace with {@link getParameterSpecFromSignature}
+   * @param functionDescription
+   * @return
+   */
   private String getParameterFunctionCallFromSignature(JsonObject functionDescription) {
     List<String> VAR_PARAMS = new LinkedList<>();
     functionDescription
@@ -432,14 +458,15 @@ public class ContraectGenerator {
     CodeBlock getInitFunctionCalldata =
         CodeBlock.builder()
             .addStatement(
-                "$T $L = this.$N($S)",
+                "$T $L = this.$N($S, new $T<>())",
                 String.class,
                 VAR_CALLDATA,
                 GCPM_CALLDATA_FOR_FCT,
-                config.getInitFunctionName())
+                config.getInitFunctionName(),
+                LinkedList.class)
             .build();
-    if (functionDescription != null
-        && getParameterFunctionCallFromSignature(functionDescription).length() > 0) {
+    if (functionDescription != null) {
+      parameters = getParameterSpecFromSignature(functionDescription);
       getInitFunctionCalldata =
           CodeBlock.builder()
               .addStatement(
@@ -448,9 +475,8 @@ public class ContraectGenerator {
                   VAR_CALLDATA,
                   GCPM_CALLDATA_FOR_FCT,
                   config.getInitFunctionName(),
-                  getParameterFunctionCallFromSignature(functionDescription))
+                  getParameterEncoding(parameters))
               .build();
-      parameters = this.getParameterSpecFromSignature(functionDescription);
     }
 
     GCPM_DEPLOY =
@@ -478,9 +504,9 @@ public class ContraectGenerator {
   private List<MethodSpec> buildContractPrivateMethods() {
     return Arrays.asList(
         buildContractExistsMethod(),
-        buildGetParamCallEncoding(),
+        // buildGetParamCallEncoding(),
         buildGetNextNonceMethod(),
-        buildGenerateMapParam(),
+        // buildGenerateMapParam(),
         buildGetCalldataForFunctionMethod(),
         buildCreateTransactionCallModelMethod(),
         buildDryRunMethod(),
@@ -746,6 +772,10 @@ public class ContraectGenerator {
     return this.GCPM_NEXT_NONCE;
   }
 
+  /**
+   * @deprecated
+   * @return
+   */
   private MethodSpec buildGenerateMapParam() {
     String VAR_RECP_COND_SET = "recipientConditionSet";
     String MP_PARAMS = "params";
@@ -775,8 +805,8 @@ public class ContraectGenerator {
   }
 
   /**
-   * method which defines, how to pass simple type to the function call if string, enclose in
-   * brackets, otherwise just use the value
+   * @deprecated method which defines, how to pass simple type to the function call if string,
+   *     enclose in brackets, otherwise just use the value
    */
   private MethodSpec buildGetParamCallEncoding() {
     String MP_PARAM = "param";
@@ -801,48 +831,25 @@ public class ContraectGenerator {
   }
 
   private MethodSpec buildGetCalldataForFunctionMethod() {
-    String VAR_ARGUMENTS = "arguments";
-    String VAR_PARAM = "param";
     String MP_PARAMS = "params";
     String MP_FUNCTION = "function";
 
     this.GCPM_CALLDATA_FOR_FCT =
         MethodSpec.methodBuilder("getCalldataForFunction")
-            .varargs(true)
             .addParameters(
                 Arrays.asList(
                     ParameterSpec.builder(String.class, MP_FUNCTION).build(),
-                    ParameterSpec.builder(Object[].class, MP_PARAMS).build()))
+                    ParameterSpec.builder(
+                            ParameterizedTypeName.get(List.class, String.class), MP_PARAMS)
+                        .build()))
             .addCode(
                 CodeBlock.builder()
-                    .addStatement(
-                        "$T $N = null",
-                        ParameterizedTypeName.get(List.class, String.class),
-                        VAR_ARGUMENTS)
-                    .beginControlFlow("if($L != null)", MP_PARAMS)
-                    .addStatement(
-                        "$L = new $T()",
-                        VAR_ARGUMENTS,
-                        ParameterizedTypeName.get(LinkedList.class, String.class))
-                    .beginControlFlow("for($T $L : $L)", Object.class, VAR_PARAM, MP_PARAMS)
-                    .beginControlFlow("if($L instanceof $T)", VAR_PARAM, Map.class)
-                    .addStatement(
-                        "$L.add($N(($T) $L))",
-                        VAR_ARGUMENTS,
-                        GCPM_GENERATE_MAP_PARAM,
-                        Map.class,
-                        VAR_PARAM)
-                    .nextControlFlow("else")
-                    .addStatement("$L.add($N($L))", VAR_ARGUMENTS, GCPM_PARAM_CALL_ENC, VAR_PARAM)
-                    .endControlFlow()
-                    .endControlFlow()
-                    .endControlFlow()
                     .addStatement(
                         "return $L.compiler.blockingEncodeCalldata($L,$L,$L).getResult()",
                         GCV_AETERNITY_SERVICE,
                         GCV_AES_SOURCECODE,
                         MP_FUNCTION,
-                        VAR_ARGUMENTS)
+                        MP_PARAMS)
                     .build())
             .returns(String.class)
             .addModifiers(Modifier.PRIVATE)
@@ -861,7 +868,9 @@ public class ContraectGenerator {
             .addParameters(
                 Arrays.asList(
                     ParameterSpec.builder(String.class, MP_FUNCTION).build(),
-                    ParameterSpec.builder(Object[].class, MP_PARAMS).build()))
+                    ParameterSpec.builder(
+                            ParameterizedTypeName.get(List.class, String.class), MP_PARAMS)
+                        .build()))
             .addCode(
                 CodeBlock.builder()
                     .addStatement(
@@ -895,7 +904,6 @@ public class ContraectGenerator {
                         GCV_CONFIG)
                     .build())
             .returns(ContractCallTransactionModel.class)
-            .varargs(true)
             .build();
 
     return this.GCPM_CREATE_CCM;
@@ -943,6 +951,23 @@ public class ContraectGenerator {
     return GCPM_DRY_RUN;
   }
 
+  private CodeBlock getParameterEncoding(List<ParameterSpec> params) {
+    return CodeBlock.join(
+        params.stream()
+            .map(
+                p ->
+                    CodeBlock.builder()
+                        .add(
+                            "this.$L.encodeParameter($T.get($T.class),$L)",
+                            DATATYPE_ENCODING_HANDLER,
+                            TypeName.class,
+                            p.type,
+                            p.name)
+                        .build())
+            .collect(Collectors.toList()),
+        ",");
+  }
+
   /**
    * ------------------------------
    *
@@ -966,12 +991,12 @@ public class ContraectGenerator {
    * @param result
    * @return
    */
-  private CodeBlock mapReturnTypeFromCall(Object classType, String result) {
-    return typeMapperList.stream()
-        .filter(t -> t.applies(classType))
-        .findFirst()
-        .orElse(new DefaultMapper(null))
-        .getReturnStatement(result);
+  private CodeBlock mapReturnTypeFromCall(TypeName resultType, String result) {
+    return CodeBlock.builder()
+        .add("return ")
+        .add(this.typeResolver.decodeResult(resultType, result))
+        .add(";")
+        .build();
   }
 
   /**
@@ -980,19 +1005,7 @@ public class ContraectGenerator {
    * @param classType
    * @return
    */
-  private Type mapClass(Object classType) {
-    return typeMapperList.stream()
-        .filter(t -> t.applies(classType))
-        .findFirst()
-        .orElse(new DefaultMapper(null))
-        .getJavaType();
+  private TypeName mapClass(Object classType) {
+    return this.typeResolver.getReturnType(classType);
   }
-
-  private List<SophiaTypeMapper> typeMapperList = new ArrayList<>();
-  // Arrays.asList(
-  // new BoolMapper(),
-  // new BitsMapper(),
-  // new BytesMapper(),
-  // new StringMapper(),
-  // new IntMapper());
 }

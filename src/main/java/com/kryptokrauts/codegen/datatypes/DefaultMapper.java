@@ -2,7 +2,6 @@ package com.kryptokrauts.codegen.datatypes;
 
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.TypeName;
-import java.lang.reflect.Type;
 
 public class DefaultMapper extends AbstractSophiaTypeMapper {
 
@@ -13,12 +12,7 @@ public class DefaultMapper extends AbstractSophiaTypeMapper {
 
   @Override
   public CodeBlock getReturnStatement(Object resultToReturn) {
-    return CodeBlock.builder().addStatement("return ($T)$L", Object.class, resultToReturn).build();
-  }
-
-  @Override
-  public Type getJavaType() {
-    return Object.class;
+    return CodeBlock.builder().add("($T)$L", Object.class, resultToReturn).build();
   }
 
   @Override
@@ -27,8 +21,7 @@ public class DefaultMapper extends AbstractSophiaTypeMapper {
   }
 
   @Override
-  public TypeName getReturnType(Object valueTypeString) {
-    // TODO Auto-generated method stub
-    return null;
+  public TypeName getReturnType(Object typeString) {
+    return TypeName.get(Object.class);
   }
 }
