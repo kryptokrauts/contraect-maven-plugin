@@ -49,6 +49,10 @@ public class CodegenConfiguration {
 
   private String abiJSONFunctionStatefulElement;
 
+  private String abiJSONTypesElement;
+
+  private String abiJSONTypesNameElement;
+
   public AeternityService getAeternityService() {
     if (aeternityService == null) {
       VertxOptions options = new VertxOptions();

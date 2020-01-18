@@ -1,6 +1,7 @@
 package com.kryptokrauts.codegen;
 
 import com.kryptokrauts.aeternity.sdk.constants.BaseConstants;
+import com.kryptokrauts.aeternity.sdk.domain.ObjectResultWrapper;
 import com.kryptokrauts.aeternity.sdk.service.aeternity.AeternityServiceConfiguration;
 import com.kryptokrauts.aeternity.sdk.service.aeternity.AeternityServiceFactory;
 import com.kryptokrauts.aeternity.sdk.service.aeternity.impl.AeternityService;
@@ -14,13 +15,8 @@ import com.kryptokrauts.aeternity.sdk.service.transaction.domain.DryRunTransacti
 import com.kryptokrauts.aeternity.sdk.service.transaction.domain.PostTransactionResult;
 import com.kryptokrauts.aeternity.sdk.service.transaction.type.model.ContractCallTransactionModel;
 import com.kryptokrauts.aeternity.sdk.service.transaction.type.model.ContractCreateTransactionModel;
-import com.kryptokrauts.codegen.datatypes.BitsMapper;
-import com.kryptokrauts.codegen.datatypes.BoolMapper;
-import com.kryptokrauts.codegen.datatypes.BytesMapper;
 import com.kryptokrauts.codegen.datatypes.DefaultMapper;
-import com.kryptokrauts.codegen.datatypes.IntMapper;
 import com.kryptokrauts.codegen.datatypes.SophiaTypeMapper;
-import com.kryptokrauts.codegen.datatypes.StringMapper;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.JavaFile;
@@ -36,6 +32,7 @@ import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -281,8 +278,8 @@ public class ContraectGenerator {
                 GCPM_DRY_RUN,
                 VAR_CC_MODEL)
             .addStatement(
-                "$T $L = this.$L.compiler.blockingDecodeCallResult($L,$S,$L.getContractCallObject().getReturnType(),$L.getContractCallObject().getReturnValue()).toString()",
-                Object.class,
+                "$T $L = this.$L.compiler.blockingDecodeCallResult($L,$S,$L.getContractCallObject().getReturnType(),$L.getContractCallObject().getReturnValue())",
+                ObjectResultWrapper.class,
                 VAR_RESULT_OBJECT,
                 GCV_AETERNITY_SERVICE,
                 GCV_AES_SOURCECODE,
@@ -508,7 +505,7 @@ public class ContraectGenerator {
             .addCode(
                 CodeBlock.builder()
                     .addStatement(
-                        "$T $L = this.$L.compiler.blockingCompile($L,null,null)",
+                        "$T $L = this.$L.compiler.blockingCompile($L,null,null).getResult()",
                         String.class,
                         VAR_BYTECODE,
                         GCV_AETERNITY_SERVICE,
@@ -541,7 +538,7 @@ public class ContraectGenerator {
                         BigInteger.class,
                         GCV_CONFIG)
                     .addStatement(
-                        "$T $L = this.$L.transactions.blockingCreateUnsignedTransaction($L)",
+                        "$T $L = this.$L.transactions.blockingCreateUnsignedTransaction($L).getResult()",
                         String.class,
                         VAR_CC_UNSIGNED_TX,
                         GCV_AETERNITY_SERVICE,
@@ -698,7 +695,7 @@ public class ContraectGenerator {
                         GCV_DEPLOYED_CONTRACT_ID,
                         GCV_DEPLOYED_CONTRACT_ID)
                     .addStatement(
-                        "String $L = this.$L.info.blockingGetContractByteCode($L)",
+                        "String $L = this.$L.info.blockingGetContractByteCode($L).getResult()",
                         VAR_BYTECODE,
                         GCV_AETERNITY_SERVICE,
                         GCV_DEPLOYED_CONTRACT_ID)
@@ -841,7 +838,7 @@ public class ContraectGenerator {
                     .endControlFlow()
                     .endControlFlow()
                     .addStatement(
-                        "return $L.compiler.blockingEncodeCalldata($L,$L,$L)",
+                        "return $L.compiler.blockingEncodeCalldata($L,$L,$L).getResult()",
                         GCV_AETERNITY_SERVICE,
                         GCV_AES_SOURCECODE,
                         MP_FUNCTION,
@@ -935,7 +932,10 @@ public class ContraectGenerator {
                     .addStatement("return $L.getResults().get(0)", VAR_DR_RESULTS)
                     .endControlFlow()
                     .addStatement(
-                        "throw new $T($S)", RuntimeException.class, "call of function failed")
+                        "throw new $T($S+$L.getRootErrorMessage())",
+                        RuntimeException.class,
+                        "Dry run call of function failed:\n",
+                        VAR_DR_RESULTS)
                     .build())
             .addModifiers(Modifier.PRIVATE)
             .returns(DryRunTransactionResult.class)
@@ -970,7 +970,7 @@ public class ContraectGenerator {
     return typeMapperList.stream()
         .filter(t -> t.applies(classType))
         .findFirst()
-        .orElse(new DefaultMapper())
+        .orElse(new DefaultMapper(null))
         .getReturnStatement(result);
   }
 
@@ -984,15 +984,15 @@ public class ContraectGenerator {
     return typeMapperList.stream()
         .filter(t -> t.applies(classType))
         .findFirst()
-        .orElse(new DefaultMapper())
+        .orElse(new DefaultMapper(null))
         .getJavaType();
   }
 
-  private List<SophiaTypeMapper> typeMapperList =
-      Arrays.asList(
-          new BoolMapper(),
-          new BitsMapper(),
-          new BytesMapper(),
-          new StringMapper(),
-          new IntMapper());
+  private List<SophiaTypeMapper> typeMapperList = new ArrayList<>();
+  // Arrays.asList(
+  // new BoolMapper(),
+  // new BitsMapper(),
+  // new BytesMapper(),
+  // new StringMapper(),
+  // new IntMapper());
 }

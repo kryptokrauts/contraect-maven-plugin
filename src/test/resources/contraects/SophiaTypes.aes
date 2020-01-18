@@ -16,80 +16,35 @@ contract SophiaTypes =
          firstname: string,
          lastname: string }
          
+    entrypoint testAddress(addressValue: address) : address =
+        addressValue
+        
     entrypoint testInt(intValue: int) : int =
         intValue
 
-    entrypoint testAddress(addressValue: address) : address =
-        addressValue
-
-    entrypoint testBool(boolValue: bool) : bool =
-        boolValue
-
-    entrypoint testBits(bitsValue: bits) : bits =
-        bitsValue
-
-    entrypoint testBytes(bytesValue: bytes(64)) : bytes(64) =
-        bytesValue
-
-    entrypoint testString(stringValue: string) : string =
-        stringValue
-
+    entrypoint testMap(mapValue: map(int, bool)) : map(int, bool) =
+        mapValue
+        
+    entrypoint testListMap(mapValue: list(map(int, bool))) : list(map(int, bool)) =
+        mapValue
+        
+    entrypoint testListListMap(mapValue: list(list(map(int, bool)))) : list(list(map(int, bool))) =
+        mapValue
+        
+    entrypoint testTuple(tupleValue: int * bool) : (int * bool) =
+        tupleValue
+        
+    entrypoint testListIntInt(listIntValue: list(int * int)) : list(int * int) =
+        listIntValue
+    
     entrypoint testListInt(listIntValue: list(int)) : list(int) =
         listIntValue
-
+    
     entrypoint testListAddressInt(listAddressIntValue: list(address * int)) : list(address * int) =
         listAddressIntValue
-
-    entrypoint testCompanyRecord(companyRecordValue: company) : company =
-        companyRecordValue
-    
-    entrypoint testMapStringAddress(mapStringAddressValue: map(string, address)) : map(string, address) =
-        mapStringAddressValue
-
-    entrypoint testOption(optionValue: option('a)) : option('a) =
-        optionValue
-
-    entrypoint testHash(hashValue: hash) : hash =
-        hashValue
-
-    entrypoint testSignature(signatureValue: signature) : signature =
-        signatureValue
-
-    stateful entrypoint testIntStateful(intValue: int) : int =
-        intValue
-
-    stateful entrypoint testAddressStateful(addressValue: address) : address =
-        addressValue
-
-    stateful entrypoint testBoolStateful(boolValue: bool) : bool =
-        boolValue
-
-    stateful entrypoint testBitsStateful(bitsValue: bits) : bits =
-        bitsValue
-
-    stateful entrypoint testBytesStateful(bytesValue: bytes(64)) : bytes(64) =
-        bytesValue
-
-    entrypoint testStringStateful(stringValue: string) : string =
-        stringValue
-
-    stateful entrypoint testListIntStateful(listIntValue: list(int)) : list(int) =
-        listIntValue
-
-    stateful entrypoint testListAddressIntStateful(listAddressIntValue: list(address * int)) : list(address * int) =
-        listAddressIntValue
-
-    stateful entrypoint testCompanyRecordStateful(companyRecordValue: company) : company =
-        companyRecordValue
-    
-    stateful entrypoint testMapStringAddressStateful(mapStringAddressValue: map(string, address)) : map(string, address) =
-        mapStringAddressValue
-
-    stateful entrypoint testOptionStateful(optionValue: option('a)) : option('a) =
-        optionValue
-
-    stateful entrypoint testHashStateful(hashValue: hash) : hash =
-        hashValue
-
-    stateful entrypoint testSignatureStateful(signatureValue: signature) : signature =
-        signatureValue
+        
+    entrypoint testIntStr(intValue: int, stringValue: string) : string =
+        String.concat(stringValue,Int.to_str(intValue))
+        
+    entrypoint testEmployee(eValue: employee) : employee =
+        eValue

@@ -89,6 +89,8 @@ public class ContraectCodegenMojo extends AbstractMojo {
             .abiJSONFunctionStatefulElement(abiJsonDescription.getAbiJSONFunctionStatefulElement())
             .abiJSONNameElement(abiJsonDescription.getAbiJSONNameElement())
             .abiJSONRootElement(abiJsonDescription.getAbiJSONRootElement())
+            .abiJSONTypesElement(abiJsonDescription.getAbiJSONTypesElement())
+            .abiJSONTypesNameElement(abiJsonDescription.getAbiJSONTypesNameElement())
             .build();
 
     generateDefaultDatatypes();
