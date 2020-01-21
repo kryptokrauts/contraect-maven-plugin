@@ -1,21 +1,38 @@
 package com.kryptokrauts.runtime.datatypes;
 
-import com.squareup.javapoet.TypeName;
 import java.math.BigInteger;
 
-public class IntEncoder implements DatatypeEncoder {
+import com.squareup.javapoet.CodeBlock;
+import com.squareup.javapoet.TypeName;
 
-  private DatatypeEncodingHandler resolveInstance;
+public class IntEncoder extends AbstractDatatypeEncoder {
 
-  public IntEncoder(DatatypeEncodingHandler resolveInstance) {
-    this.resolveInstance = resolveInstance;
-  }
+	public IntEncoder(DatatypeEncodingHandler resolveInstance) {
+		super(resolveInstance);
+	}
 
-  public boolean applies(TypeName type) {
-    return TypeName.get(BigInteger.class).equals(type);
-  }
+	public boolean applies(TypeName type) {
+		return TypeName.get(BigInteger.class).equals(type);
+	}
 
-  public String encodeValue(Object value) {
-    return value.toString();
-  }
+	@Override
+	public boolean applies(Object type) {
+		return "int".equals(type);
+	}
+
+	public CodeBlock encodeValue(TypeName type, String variableName) {
+		return CodeBlock.builder().add("$L.toString()", variableName).build();
+	}
+
+	@Override
+	public CodeBlock mapToReturnValue(TypeName type, String variableName) {
+		return CodeBlock.builder()
+				.add("new $T($L.toString())", BigInteger.class, variableName)
+				.build();
+	}
+
+	@Override
+	public TypeName getTypeName(Object type) {
+		return TypeName.get(BigInteger.class);
+	}
 }

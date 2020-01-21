@@ -1,21 +1,21 @@
-package com.kryptokrauts.codegen.datatypes;
+package com.kryptokrauts.codegen.datatypes.deprecated;
 
-public class BitsMapper { // extends AbstractSophiaTypeMapper {
+public class HashMapper { // extends AbstractSophiaTypeMapper {
 
   // @Override
   // public CodeBlock getReturnStatement(Object resultToReturn) {
   // return CodeBlock.builder()
-  // .addStatement("return new $T($L)", Byte.class, resultToReturn)
+  // .addStatement("return new $T($L)", Byte[].class, resultToReturn)
   // .build();
   // }
   //
   // @Override
   // public Type getJavaType() {
-  // return Byte.class;
+  // return Byte[].class;
   // }
   //
   // @Override
   // public boolean applies(Object type) {
-  // return "bool".equalsIgnoreCase(getType(type));
+  // return "hash".equalsIgnoreCase(getType(type));
   // }
 }

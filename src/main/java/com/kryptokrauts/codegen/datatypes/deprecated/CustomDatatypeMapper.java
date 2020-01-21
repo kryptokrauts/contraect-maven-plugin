@@ -1,4 +1,4 @@
-package com.kryptokrauts.codegen.datatypes;
+package com.kryptokrauts.codegen.datatypes.deprecated;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.reflect.ClassPath;

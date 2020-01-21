@@ -1,10 +1,16 @@
-package com.kryptokrauts.codegen.datatypes;
+package com.kryptokrauts.codegen.datatypes.deprecated;
 
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.TypeName;
 
 public interface SophiaTypeMapper {
 
+  /**
+   * get the return statement for function call - parse result back to corresponding java type
+   *
+   * @param resultToReturn
+   * @return
+   */
   public CodeBlock getReturnStatement(Object resultToReturn);
 
   /**

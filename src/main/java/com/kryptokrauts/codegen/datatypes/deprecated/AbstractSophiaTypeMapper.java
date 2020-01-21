@@ -1,4 +1,4 @@
-package com.kryptokrauts.codegen.datatypes;
+package com.kryptokrauts.codegen.datatypes.deprecated;
 
 import com.squareup.javapoet.CodeBlock;
 import lombok.NonNull;

@@ -1,4 +1,4 @@
-package com.kryptokrauts.codegen.datatypes;
+package com.kryptokrauts.codegen.datatypes.deprecated;
 
 public class SignatureMapper { // extends AbstractSophiaTypeMapper {
 

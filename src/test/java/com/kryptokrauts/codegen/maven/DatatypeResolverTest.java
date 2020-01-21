@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kryptokrauts.codegen.datatypes.TypeResolverRefactored;
+import com.kryptokrauts.codegen.datatypes.deprecated.TypeResolverRefactored;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
@@ -15,13 +15,11 @@ import java.util.Map;
 import org.javatuples.Pair;
 import org.javatuples.Triplet;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
 
 public class DatatypeResolverTest {
 
   private TypeResolverRefactored typeResolver = new TypeResolverRefactored();
 
-  @Test
   public void testTypeMappings() {
     Map<String, TypeName> typeNames = new HashMap<String, TypeName>();
     // simple types
@@ -69,7 +67,6 @@ public class DatatypeResolverTest {
         });
   }
 
-  @Test
   public void testUnsupportedTypeMappings() throws Exception {
     Assertions.assertThrows(
         RuntimeException.class,

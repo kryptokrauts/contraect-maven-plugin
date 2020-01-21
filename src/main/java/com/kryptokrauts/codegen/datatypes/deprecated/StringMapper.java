@@ -1,4 +1,4 @@
-package com.kryptokrauts.codegen.datatypes;
+package com.kryptokrauts.codegen.datatypes.deprecated;
 
 import com.squareup.javapoet.TypeName;
 
@@ -9,9 +9,9 @@ public class StringMapper extends AbstractSophiaTypeMapper {
   }
 
   @Override
-  public boolean applies(Object type) {
-    return "string".equalsIgnoreCase(valueToString(type))
-        || TypeName.get(String.class).equals(type);
+  public boolean applies(Object typeString) {
+    return "string".equalsIgnoreCase(valueToString(typeString))
+        || TypeName.get(String.class).equals(typeString);
   }
 
   @Override

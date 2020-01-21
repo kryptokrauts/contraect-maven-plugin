@@ -1,20 +1,24 @@
 contract DatatypeTest =
 
-    record company =
-      {  ceo: address,
-         shareholders: map(address, int),
-         employees: list(employee),
-         location: companyAddress }
-    
     record companyAddress =
       {  zip: int,
          street: string,
-         city: string }
+         city: string,
+         lst: list(int) }
 
-    record employee =
-      {  address: address,
-         firstname: string,
-         lastname: string }
+    type mylist = list(int)
          
     entrypoint testString(varA: string, varB: int) : string =
         String.concat(varA, Int.to_str(varB))
+    
+    entrypoint testInt(varA: int) : int =
+        varA
+    
+    entrypoint testStringList(listStringValue: list(string)) : list(string) =
+        listStringValue
+        
+    entrypoint testListStringList(listStringValue: list(list(string))) : list(list(string)) =
+        listStringValue
+        
+    entrypoint testAddress(addressValue: address) : address =
+        addressValue

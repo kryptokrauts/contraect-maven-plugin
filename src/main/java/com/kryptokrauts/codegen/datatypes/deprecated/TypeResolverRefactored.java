@@ -1,33 +1,17 @@
-package com.kryptokrauts.codegen.datatypes;
+package com.kryptokrauts.codegen.datatypes.deprecated;
 
-import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
-import com.squareup.javapoet.MethodSpec;
-import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import org.apache.maven.plugin.MojoExecutionException;
 
 /** @author mitch */
 public class TypeResolverRefactored {
+
   private List<SophiaTypeMapper> typeMapperList;
 
   private SophiaTypeMapper defaultTypeMapper;
-
-  private void resolveType(Map parsedType) {
-    MethodSpec loadListInteger =
-        MethodSpec.methodBuilder("loadListInteger")
-            .returns(ParameterizedTypeName.get(List.class, Integer.class))
-            .addParameter(ParameterizedTypeName.get(List.class, Integer.class), "list")
-            .addParameter(
-                ParameterizedTypeName.get(
-                    ClassName.get(List.class),
-                    ParameterizedTypeName.get(List.class, Integer.class)),
-                "t1")
-            .build();
-  }
 
   /*
    * custom types müssen einen eigenen mapper definieren, der hier in die
@@ -68,6 +52,13 @@ public class TypeResolverRefactored {
     return getTypeMapper(typeString).getReturnType(typeString);
   }
 
+  /**
+   * decodes the given result object to the corresponding result type
+   *
+   * @param type
+   * @param result
+   * @return
+   */
   public CodeBlock decodeResult(TypeName type, Object result) {
     return getTypeMapper(type).getReturnStatement(result);
   }

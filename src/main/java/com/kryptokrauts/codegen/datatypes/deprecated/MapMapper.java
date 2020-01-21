@@ -1,9 +1,10 @@
-package com.kryptokrauts.codegen.datatypes;
+package com.kryptokrauts.codegen.datatypes.deprecated;
 
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
+import io.vertx.core.json.JsonObject;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -18,22 +19,23 @@ public class MapMapper extends AbstractSophiaTypeMapper {
 
   @Override
   public boolean applies(Object typeString) {
-    return typeString instanceof Map;
+    // return typeString instanceof Map;
+    return typeString instanceof JsonObject;
   }
 
   @Override
   public TypeName getReturnType(Object typeString) {
-    Set<?> keySet = ((Map<?, ?>) typeString).keySet();
+    // Set<?> keySet = ((Map<?, ?>) typeString).keySet();
+    JsonObject json = (JsonObject) typeString;
+    Set<String> keySet = json.fieldNames();
 
     // it must be a key of size 1 which holds the datatype definition - it's
     // one of
     if (keySet.size() == 1) {
-      Object key = keySet.iterator().next();
+      String key = keySet.iterator().next();
       // list type
       if ("list".equalsIgnoreCase(key.toString())) {
-        return typeResolverInstance
-            .getTypeMapper("list")
-            .getReturnType(((Map<?, ?>) typeString).get(key));
+        return typeResolverInstance.getTypeMapper("list").getReturnType(json.getValue(key));
       }
       // map type
       else if ("map".equalsIgnoreCase(key.toString())) {
