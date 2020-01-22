@@ -16,13 +16,17 @@ public class DatatypeEncodingHandler {
 
 	protected String generatedTypesPackageName;
 
+	protected String generatedContractClassName;
+
 	private List<DatatypeEncoder> datatypeHandlers;
 
-	public DatatypeEncodingHandler(String generatedTypesPackageName) {
+	public DatatypeEncodingHandler(String generatedTypesPackageName,
+			String generatedContractClassName) {
 		this.datatypeHandlers = Arrays.asList(new StringEncoder(this),
 				new IntEncoder(this), new ListEncoder(this),
-				new AddressEncoder(this));
+				new AddressEncoder(this), new CustomTypeEncoder(this));
 		this.generatedTypesPackageName = generatedTypesPackageName;
+		this.generatedContractClassName = generatedContractClassName;
 	}
 
 	public CodeBlock encodeParameter(TypeName type, String variableName) {

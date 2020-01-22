@@ -3,15 +3,11 @@ contract DatatypeTest =
     record companyAddress =
       {  zip: int,
          street: string,
-         city: string,
-         lst: list(int) }
+         city: string }
 
-    type mylist = list(int)
-         
-    entrypoint testString(varA: string, varB: int) : string =
-        String.concat(varA, Int.to_str(varB))
-    
-    entrypoint testInt(varA: int) : int =
+    type mylist = list(int)         
+        
+    entrypoint testCA(varA: companyAddress) : companyAddress =
         varA
     
     entrypoint testStringList(listStringValue: list(string)) : list(string) =
@@ -22,3 +18,10 @@ contract DatatypeTest =
         
     entrypoint testAddress(addressValue: address) : address =
         addressValue
+        
+    entrypoint testString(varA: string, varB: int) : string =
+        String.concat(varA, Int.to_str(varB))
+    
+    entrypoint testInt(varA: int) : int =
+        varA
+    

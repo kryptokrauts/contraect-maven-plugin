@@ -91,8 +91,9 @@ public class ListEncoder extends AbstractDatatypeEncoder {
 				}
 			}
 		}
-		throw new RuntimeException(getUnsupportedMappingException(type,
-				ListEncoder.class.getName(), "parseToJsonArray",
-				"expected list definition but got " + type));
+		return null;
+		// throw new RuntimeException(getUnsupportedMappingException(type,
+		// ListEncoder.class.getName(), "parseToJsonArray",
+		// "expected list definition but got " + type));
 	}
 }

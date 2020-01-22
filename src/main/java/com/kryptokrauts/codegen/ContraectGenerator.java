@@ -15,7 +15,6 @@ import javax.lang.model.element.Modifier;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.maven.plugin.MojoExecutionException;
-import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -104,11 +103,11 @@ public class ContraectGenerator {
 
 	private DatatypeEncodingHandler datatypeEncodingHandler;
 
+	private CustomTypesGenerator customTypesGenerator;
+
 	public ContraectGenerator(CodegenConfiguration config) {
 		this.config = config;
 		this.typeResolver = new TypeResolverRefactored();
-		this.datatypeEncodingHandler = new DatatypeEncodingHandler(
-				config.getTargetPackage());
 	}
 
 	public void generate(String aesFile) throws MojoExecutionException {
@@ -153,9 +152,15 @@ public class ContraectGenerator {
 	private void generateContractClass(JsonObject abiJson, String aesContent)
 			throws MojoExecutionException {
 		try {
-			TypeSpec contractTypeSpec = TypeSpec
-					.classBuilder(
-							abiJson.getString(config.getAbiJSONNameElement()))
+			String className = CodegenUtil.getUppercaseClassName(
+					abiJson.getString(config.getAbiJSONNameElement()));
+
+			this.datatypeEncodingHandler = new DatatypeEncodingHandler(
+					config.getTargetPackage(), className);
+			this.customTypesGenerator = new CustomTypesGenerator(
+					this.datatypeEncodingHandler);
+
+			TypeSpec contractTypeSpec = TypeSpec.classBuilder(className)
 					.addModifiers(Modifier.PUBLIC, Modifier.FINAL)
 					.addField(AeternityService.class, GCV_AETERNITY_SERVICE,
 							Modifier.PRIVATE)
@@ -180,8 +185,9 @@ public class ContraectGenerator {
 							.builder(int.class, GCV_NUM_TRIALS,
 									Modifier.PRIVATE)
 							.initializer("$L", config.getNumTrials()).build())
-					.addTypes(generateCustomTypes(abiJson
-							.getJsonArray(config.getAbiJSONTypesElement())))
+					.addTypes(this.customTypesGenerator
+							.generateCustomTypes(abiJson.getJsonArray(
+									config.getAbiJSONTypesElement())))
 					.addMethods(buildContractPrivateMethods())
 					.addMethod(buildConstructor())
 					.addMethods(this.buildContractMethods(abiJson)).build();
@@ -208,87 +214,6 @@ public class ContraectGenerator {
 							+ abiJson.getString(config.getAbiJSONNameElement()),
 					e);
 		}
-	}
-
-	/**
-	 * @TODO check if record before -> if not, create not type
-	 */
-	private List<TypeSpec> generateCustomTypes(JsonArray customTypes) {
-		return customTypes.stream()
-				.map(typeDefinition -> generateCustomType(
-						JsonObject.mapFrom(typeDefinition)))
-				.collect(Collectors.toList());
-	}
-
-	/**
-	 * @TODO refactor json names
-	 */
-	private TypeSpec generateCustomType(JsonObject typeDefinition) {
-		List<Pair<String, Object>> fields = new LinkedList<>();
-
-		JsonArray record = typeDefinition.getJsonObject("typedef")
-				.getJsonArray("record");
-		// if record is defined, it is a custom type
-		if (record != null) {
-			fields = record.stream().map(definition -> {
-				JsonObject oneField = JsonObject.mapFrom(definition);
-				String name = oneField.getString("name");
-				Object type = oneField.getValue("type");
-				return Pair.with(name, type);
-			}).collect(Collectors.toList());
-		}
-		String name = typeDefinition.getString("name");
-		return TypeSpec
-				.classBuilder(
-						name.substring(0, 1).toUpperCase() + name.substring(1))
-				.addFields(buildFields(fields)).addModifiers(Modifier.PUBLIC)
-				.build();
-	}
-
-	private List<MethodSpec> buildGetter(List<Pair<String, String>> fields) {
-		return fields.stream()
-				.map(field -> MethodSpec
-						.methodBuilder("get"
-								+ field.getValue0().substring(0, 1)
-										.toUpperCase()
-								+ field.getValue0().substring(1))
-						.addModifiers(Modifier.PUBLIC)
-						.returns(this.typeResolver
-								.getReturnType(field.getValue1()))
-						.addStatement("return this.$L", field.getValue0())
-						.build())
-				.collect(Collectors.toList());
-	}
-
-	private List<MethodSpec> buildSetter(List<Pair<String, String>> fields) {
-		return fields
-				.stream().map(
-						field -> MethodSpec
-								.methodBuilder("get"
-										+ field.getValue0().substring(0, 1)
-												.toUpperCase()
-										+ field.getValue0().substring(1))
-								.addModifiers(Modifier.PUBLIC)
-								.addStatement("this.$L = $L", field.getValue0(),
-										field.getValue0())
-								.addParameter(
-										this.typeResolver.getReturnType(
-												field.getValue1()),
-										field.getValue0())
-								.build())
-				.collect(Collectors.toList());
-	}
-
-	private List<FieldSpec> buildFields(List<Pair<String, Object>> fields) {
-		return fields
-				.stream().map(
-						field -> FieldSpec
-								.builder(
-										this.datatypeEncodingHandler
-												.getTypeName(field.getValue1()),
-										field.getValue0(), Modifier.PRIVATE)
-								.build())
-				.collect(Collectors.toList());
 	}
 
 	/**
@@ -367,6 +292,10 @@ public class ContraectGenerator {
 
 		TypeName resultType = this.mapClass(functionDescription
 				.getValue(config.getAbiJSONFunctionsReturnTypeElement()));
+
+		// TypeName resultType = this.datatypeEncodingHandler
+		// .getTypeName(functionDescription.getValue(
+		// config.getAbiJSONFunctionsReturnTypeElement()));
 
 		CodeBlock codeBlock = CodeBlock.builder()
 				.addStatement("$T $L = $T.asList($L)",
@@ -872,6 +801,7 @@ public class ContraectGenerator {
 	 * @return
 	 */
 	private TypeName mapClass(Object classType) {
-		return this.typeResolver.getReturnType(classType);
+		// return this.typeResolver.getReturnType(classType);
+		return this.datatypeEncodingHandler.getTypeName(classType);
 	}
 }
