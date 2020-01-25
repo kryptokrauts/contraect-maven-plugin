@@ -17,6 +17,8 @@ import io.vertx.core.json.JsonObject;
 
 public class ListEncoder extends AbstractDatatypeEncoder {
 
+	private static final String LIST_JSON_IDENTIFIER = "list";
+
 	public ListEncoder(DatatypeEncodingHandler resolveInstance) {
 		super(resolveInstance);
 	}
@@ -64,11 +66,16 @@ public class ListEncoder extends AbstractDatatypeEncoder {
 		TypeName innerType = ((ParameterizedTypeName) type).typeArguments
 				.get(0);
 		return CodeBlock.builder()
-				.add("(($T)$L).stream().map($L->", listWildCard, variableName,
+				.add("(($T)$L).stream().map($L->",
+						getParametrizedList(innerType), variableName,
 						uniqueVariableName)
 				.add(functionToCall
 						.apply(Pair.with(innerType, uniqueVariableName)))
 				.build();
+	}
+
+	private TypeName getParametrizedList(TypeName type) {
+		return ParameterizedTypeName.get(ClassName.get(List.class), type);
 	}
 
 	private TypeName listWildCard = ParameterizedTypeName.get(
@@ -85,7 +92,8 @@ public class ListEncoder extends AbstractDatatypeEncoder {
 	private JsonArray parseToJsonArray(Object type) {
 		if (type != null) {
 			if (type instanceof JsonObject) {
-				Object list = JsonObject.mapFrom(type).getValue("list");
+				Object list = JsonObject.mapFrom(type)
+						.getValue(LIST_JSON_IDENTIFIER);
 				if (list instanceof JsonArray) {
 					return (JsonArray) list;
 				}

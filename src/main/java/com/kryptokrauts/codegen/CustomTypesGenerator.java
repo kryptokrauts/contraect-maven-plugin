@@ -2,12 +2,14 @@ package com.kryptokrauts.codegen;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import javax.lang.model.element.Modifier;
 
 import org.javatuples.Pair;
 
+import com.google.common.collect.ImmutableMap;
 import com.kryptokrauts.runtime.datatypes.DatatypeEncodingHandler;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
@@ -31,16 +33,48 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class CustomTypesGenerator {
 
+	private static final String ADDRESS_TYPE = "address";
+
+	// the default parameter name
+	public static final String MP_PARAM = "p";
+
+	// the encodeValue method name
 	public static final String M_ENCODE_VALUE = "encodeValue";
 
+	// the mapToReturnValue method name
 	public static final String M_MAP_TO_RETURN_VALUE = "mapToReturnValue";
+
+	// class definition for default types
+	public static final Map<String, Pair<CodeBlock, CodeBlock>> PREDEFINED_TYPES = ImmutableMap
+			.of(ADDRESS_TYPE, Pair.with(
+					CodeBlock.builder()
+							.add("$L.get" + CodegenUtil
+									.getUppercaseClassName(ADDRESS_TYPE) + "()",
+									MP_PARAM)
+							.build(),
+					CodeBlock.builder()
+							.add("new $T($L.toString())",
+									ClassName.get("",
+											CodegenUtil.getUppercaseClassName(
+													ADDRESS_TYPE)),
+									MP_PARAM)
+							.build()));
+
+	// add the default address datatype
+	public static final JsonObject ADDRESS_DATATYPE = new JsonObject()
+			.put("name", ADDRESS_TYPE).put("typedef",
+					new JsonObject().put("record",
+							new JsonArray().add(
+									new JsonObject().put("name", ADDRESS_TYPE)
+											.put("type", "string"))));
 
 	@NonNull
 	DatatypeEncodingHandler datatypeEncodingHandler;
 	/**
-	 * @TODO check if record before -> if not, create not type
+	 * @TODO check if record before -> if not, don't create type
 	 */
 	public List<TypeSpec> generateCustomTypes(JsonArray customTypes) {
+		customTypes.add(ADDRESS_DATATYPE);
 		return customTypes.stream()
 				.map(typeDefinition -> generateCustomType(
 						JsonObject.mapFrom(typeDefinition)))
@@ -52,18 +86,27 @@ public class CustomTypesGenerator {
 	 */
 	private TypeSpec generateCustomType(JsonObject typeDefinition) {
 		List<Pair<String, TypeName>> fields = new LinkedList<>();
-
-		JsonArray record = typeDefinition.getJsonObject("typedef")
-				.getJsonArray("record");
-		// if record is defined, it is a custom type
-		if (record != null) {
-			fields = record.stream().map(definition -> {
-				JsonObject oneField = JsonObject.mapFrom(definition);
-				String name = oneField.getString("name");
-				TypeName type = this.datatypeEncodingHandler
-						.getTypeName(oneField.getValue("type"));
-				return Pair.with(name, type);
-			}).collect(Collectors.toList());
+		Object fieldDefinition = typeDefinition.getValue("typedef");
+		if (fieldDefinition instanceof JsonObject) {
+			JsonArray record = typeDefinition.getJsonObject("typedef")
+					.getJsonArray("record");
+			// if record is defined, it is a custom type
+			if (record != null) {
+				fields = record.stream().map(definition -> {
+					JsonObject oneField = JsonObject.mapFrom(definition);
+					String name = oneField.getString("name");
+					TypeName type = this.datatypeEncodingHandler
+							.getTypeName(oneField.getValue("type"));
+					return Pair.with(name, type);
+				}).collect(Collectors.toList());
+			}
+		} else if (fieldDefinition instanceof String) {
+			fields.add(Pair.with(fieldDefinition.toString(),
+					TypeName.get(String.class)));
+		} else {
+			throw new RuntimeException(
+					"Unforseen case of custom type definition "
+							+ typeDefinition.encodePrettily());
 		}
 		String name = CodegenUtil
 				.getUppercaseClassName(typeDefinition.getString("name"));
@@ -73,26 +116,48 @@ public class CustomTypesGenerator {
 				.addMethods(generateCustomTypeConstructors(fields))
 				.addMethods(generateCustomTypeGetters(fields))
 				.addMethods(generateCustomTypeSetters(fields))
-				.addMethod(generateEncodeValueMethod(fields, name)).build();
+				.addMethod(generateEncodeValueMethod(fields, name))
+				.addMethod(generateToString(fields))
+				.addMethod(generateMapToReturnValueMethod(name)).build();
 	}
 
 	private MethodSpec generateEncodeValueMethod(
 			List<Pair<String, TypeName>> fields, String customTypeName) {
-		final String MP_PARAM = "p";
-		return MethodSpec.methodBuilder(M_ENCODE_VALUE).addCode("return \"{")
-				.addCode(fields.stream().map(f -> f.getValue0() + "=\"+"
+		CodeBlock encodeValueLogic = CodeBlock.builder().add(" \"{")
+				.add(fields.stream().map(f -> f.getValue0() + "=\"+"
 						+ this.datatypeEncodingHandler.encodeParameter(
 								f.getValue1(), MP_PARAM + "." + f.getValue0())
 						+ "+\"").collect(Collectors.joining(",")))
-				.addCode("}\";").addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-				.addParameter(ClassName.get("", customTypeName), MP_PARAM)
+				.add("}\"").build();
+		// if it is a predefined class use this encoding logic
+		if (PREDEFINED_TYPES.get(customTypeName.toLowerCase()) != null) {
+			encodeValueLogic = PREDEFINED_TYPES
+					.get(customTypeName.toLowerCase()).getValue0();
+		}
+
+		return MethodSpec.methodBuilder(M_ENCODE_VALUE).addCode("return ")
+				.addCode(encodeValueLogic).addCode(";")
+				.addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+				.addParameter(this.getParameterSpec(customTypeName))
 				.returns(TypeName.get(String.class)).build();
 	}
 
-	private MethodSpec generateMapToReturnValueMethod(
-			List<Pair<String, TypeName>> fields, String customTypeName) {
+	private MethodSpec generateMapToReturnValueMethod(String customTypeName) {
+		CodeBlock returnValueLogic = CodeBlock.builder()
+				.add("$T.mapFrom($L).mapTo($T.class)", JsonObject.class,
+						MP_PARAM, this.getClassName(customTypeName))
+				.build();
+		// if it is a predefined class use this encoding logic
+		if (PREDEFINED_TYPES.get(customTypeName.toLowerCase()) != null) {
+			returnValueLogic = PREDEFINED_TYPES
+					.get(customTypeName.toLowerCase()).getValue1();
+		}
+
 		return MethodSpec.methodBuilder(M_MAP_TO_RETURN_VALUE)
-				.addModifiers(Modifier.PUBLIC).addCode("").build();
+				.addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+				.addParameter(TypeName.get(Object.class), MP_PARAM)
+				.returns(this.getClassName(customTypeName)).addCode("return ")
+				.addCode(returnValueLogic).addCode(";").build();
 	}
 
 	private List<MethodSpec> generateCustomTypeConstructors(
@@ -120,6 +185,19 @@ public class CustomTypesGenerator {
 					pair.getValue0(), pair.getValue0()).build();
 		}
 		return initializer;
+	}
+
+	private MethodSpec generateToString(List<Pair<String, TypeName>> fields) {
+		return MethodSpec.methodBuilder("toString")
+				.returns(TypeName.get(String.class))
+				.addModifiers(Modifier.PUBLIC)
+				.addStatement("return " + ((fields != null && fields.size() > 0)
+						? fields.stream()
+								.map(f -> "\"" + f.getValue0() + "=\"+this."
+										+ f.getValue0() + ".toString()")
+								.collect(Collectors.joining("+\",\"+"))
+						: "\"\""))
+				.build();
 	}
 
 	private List<MethodSpec> generateCustomTypeGetters(
@@ -158,5 +236,14 @@ public class CustomTypesGenerator {
 				.map(field -> FieldSpec.builder(field.getValue1(),
 						field.getValue0(), Modifier.PRIVATE).build())
 				.collect(Collectors.toList());
+	}
+
+	private ClassName getClassName(String customTypeName) {
+		return ClassName.get("", customTypeName);
+	}
+
+	private ParameterSpec getParameterSpec(String customTypeName) {
+		return ParameterSpec
+				.builder(this.getClassName(customTypeName), MP_PARAM).build();
 	}
 }

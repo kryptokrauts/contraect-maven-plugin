@@ -1,6 +1,6 @@
 package com.kryptokrauts.runtime.datatypes;
 
-import com.kryptokrauts.codegen.datatypes.deprecated.AddressDatatypeGenerator;
+import com.kryptokrauts.codegen.AddressDatatypeGenerator;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.TypeName;

@@ -20,10 +20,6 @@ public class IntEncoder extends AbstractDatatypeEncoder {
 		return "int".equals(type);
 	}
 
-	public CodeBlock encodeValue(TypeName type, String variableName) {
-		return CodeBlock.builder().add("$L.toString()", variableName).build();
-	}
-
 	@Override
 	public CodeBlock mapToReturnValue(TypeName type, String variableName) {
 		return CodeBlock.builder()

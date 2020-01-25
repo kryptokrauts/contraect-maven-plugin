@@ -1,13 +1,29 @@
 contract DatatypeTest =
 
+    record company =
+      {  ceo: address,
+         employees: list(employee),
+         location: companyAddress }
+         
     record companyAddress =
       {  zip: int,
          street: string,
          city: string }
 
-    type mylist = list(int)         
+    record employee =
+      {  address: address,
+         firstname: string,
+         lastname: string }
+
+    type mylist = list(int)
+    
+    entrypoint testOption(varA: option(string)) : option(string) =
+    	varA 
         
     entrypoint testCA(varA: companyAddress) : companyAddress =
+        varA
+        
+    entrypoint testC(varA: company) : company =
         varA
     
     entrypoint testStringList(listStringValue: list(string)) : list(string) =

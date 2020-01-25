@@ -1,5 +1,8 @@
 package com.kryptokrauts.runtime.datatypes;
 
+import com.squareup.javapoet.CodeBlock;
+import com.squareup.javapoet.TypeName;
+
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
@@ -12,8 +15,16 @@ public abstract class AbstractDatatypeEncoder implements DatatypeEncoder {
 	@NonNull
 	protected DatatypeEncodingHandler resolveInstance;
 
+	/**
+	 * necessary for recursive calls using lambda
+	 * 
+	 * @param variableName
+	 *            also replace dots to omit compiler errors because they
+	 *            indicate function calls
+	 * @return
+	 */
 	protected String getUniqueVariableName(String variableName) {
-		return "_" + variableName;
+		return "_" + variableName.replaceAll("\\.", "_");
 	}
 
 	protected String getUnsupportedMappingException(
@@ -26,5 +37,10 @@ public abstract class AbstractDatatypeEncoder implements DatatypeEncoder {
 								: ""),
 				typeMapperClass, typeMapperClassMethod,
 				unsupportedTypeCaseString);
+	}
+
+	@Override
+	public CodeBlock encodeValue(TypeName type, String variableName) {
+		return CodeBlock.builder().add("$L.toString()", variableName).build();
 	}
 }

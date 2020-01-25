@@ -290,12 +290,9 @@ public class ContraectGenerator {
 		List<ParameterSpec> params = getParameterSpecFromSignature(
 				functionDescription);
 
-		TypeName resultType = this.mapClass(functionDescription
-				.getValue(config.getAbiJSONFunctionsReturnTypeElement()));
-
-		// TypeName resultType = this.datatypeEncodingHandler
-		// .getTypeName(functionDescription.getValue(
-		// config.getAbiJSONFunctionsReturnTypeElement()));
+		TypeName resultType = this.datatypeEncodingHandler
+				.getTypeName(functionDescription.getValue(
+						config.getAbiJSONFunctionsReturnTypeElement()));
 
 		CodeBlock codeBlock = CodeBlock.builder()
 				.addStatement("$T $L = $T.asList($L)",
@@ -399,8 +396,8 @@ public class ContraectGenerator {
 				.getJsonArray(config.getAbiJSONFunctionArgumentElement())
 				.stream().map(param -> {
 					JsonObject paramMap = JsonObject.mapFrom(param);
-					return ParameterSpec.builder(
-							mapClass(paramMap.getValue(config
+					return ParameterSpec.builder(this.datatypeEncodingHandler
+							.getTypeName(paramMap.getValue(config
 									.getAbiJSONFunctionArgumentTypeElement())),
 							replaceInvalidChars(paramMap.getString(config
 									.getAbiJSONFunctionArgumentNameElement())))
@@ -416,6 +413,7 @@ public class ContraectGenerator {
 	 */
 	private MethodSpec buildDeployMethod(JsonObject functionDescription) {
 		String VAR_CALLDATA = "calldata";
+		String VAR_ENCODED_PARAM_LIST = "encodedParameterList";
 		List<ParameterSpec> parameters = new LinkedList<>();
 
 		CodeBlock getInitFunctionCalldata = CodeBlock.builder()
@@ -426,10 +424,14 @@ public class ContraectGenerator {
 		if (functionDescription != null) {
 			parameters = getParameterSpecFromSignature(functionDescription);
 			getInitFunctionCalldata = CodeBlock.builder()
+					.addStatement("$T $L = $T.asList($L)",
+							ParameterizedTypeName.get(List.class, String.class),
+							VAR_ENCODED_PARAM_LIST, Arrays.class,
+							getParameterEncoding(parameters))
 					.addStatement("$T $L = this.$N($S,$L)", String.class,
 							VAR_CALLDATA, GCPM_CALLDATA_FOR_FCT,
 							config.getInitFunctionName(),
-							getParameterEncoding(parameters))
+							VAR_ENCODED_PARAM_LIST)
 					.build();
 		}
 
@@ -749,16 +751,7 @@ public class ContraectGenerator {
 
 	private CodeBlock getParameterEncoding(List<ParameterSpec> params) {
 		return CodeBlock.join(params.stream().map(p -> {
-			// TypeName type = p.type;
-			// if (type instanceof ParameterizedTypeName) {
-			// type = ((ParameterizedTypeName) type).rawType;
-			// }
 			return this.datatypeEncodingHandler.encodeParameter(p.type, p.name);
-			// return CodeBlock.builder()
-			// .add("this.$L.encodeParameter($T.get($T.class),$L)",
-			// DATATYPE_ENCODING_HANDLER, TypeName.class, type,
-			// p.name)
-			// .build();
 		}).collect(Collectors.toList()), ",");
 	}
 
@@ -792,16 +785,5 @@ public class ContraectGenerator {
 				.addStatement("return $L", this.datatypeEncodingHandler
 						.mapToReturnValue(resultType, returnValueVariable))
 				.build();
-	}
-
-	/**
-	 * maps aeternity type to java type
-	 *
-	 * @param classType
-	 * @return
-	 */
-	private TypeName mapClass(Object classType) {
-		// return this.typeResolver.getReturnType(classType);
-		return this.datatypeEncodingHandler.getTypeName(classType);
 	}
 }

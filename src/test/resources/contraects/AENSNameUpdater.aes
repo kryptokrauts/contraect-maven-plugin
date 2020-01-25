@@ -1,0 +1,143 @@
+// ISC License
+//
+// Copyright (c) 2020, kryptokrauts.com
+//
+// Permission to use, copy, modify, and/or distribute this software for any
+// purpose with or without fee is hereby granted, provided that the above
+// copyright notice and this permission notice appear in all copies.
+//
+// THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+// REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+// AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+// INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+// LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
+// OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+// PERFORMANCE OF THIS SOFTWARE.
+//
+contract AENSNameUpdater =
+
+    // TODO should update-conditions and funding be global for a specific owner-address or do we want to define that per name?
+
+    record state =
+        {   contractOwner: address              // owner of the contract
+            , minReward: int                    // the minimum reward required to register a name
+            , protocolMaxTTL: int               // the maximum TTL defined in the æternity protocol
+            , contractRewardRecipient: address  // the recipient of the initial update reward
+            , names: map(string, metadata)      // map of registered names holding their metadata
+            , totalUpdateCount: int }           // number of total updates performed through the contract
+        
+
+    record metadata =
+        {   owner: address                      // the real owner of the AENS name
+            , funding: int                      // the currently available funding to provide a reward (can be updated by the owner)
+            , updateReward: int                 // reward (in aettos) a caller will receive when performing an update for the name
+            , updateIntervall: int              // intervall (in blocks) a name is allowed to be updated
+            , updateCount: int                  // number of total updates since name was registered
+            , lastUpdate: int }                 // block-height of the last update
+
+    // TODO EVENTS
+
+    // INIT FUNCTION
+    entrypoint init(contractRewardRecipient: option(address)) : state =
+        let rewardRecipient: address =
+            switch(contractRewardRecipient)
+                Some(recipient) => recipient
+                None => Call.caller
+        {   contractOwner = Call.caller
+            , minReward = 0
+            , protocolMaxTTL = 50000
+            , contractRewardRecipient = rewardRecipient
+            , names = {}
+            , totalUpdateCount = 0 }
+
+    // PUBLIC ENTRYPOINTS
+    stateful entrypoint transferContractOwnership(newOwner: address) =
+        onlyContractOwner()
+        put(state{contractOwner = newOwner})
+
+    payable stateful entrypoint registerName(name: string, updateReward: int, updateIntervall: int, transferSignature: signature) =
+        // TODO verify if caller is really the owner of the contract
+        // see https://github.com/aeternity/aesophia/issues/188
+        require(updateReward >= state.minReward, "the updateReward needs to be at least the minReward")
+        require(Call.value >= updateReward, "the provided amount of AE is not enough to cover the update-reward")
+        require(!Map.member(name, state.names), "the name is already registered")
+        require(updateIntervall > 0 && updateIntervall < state.protocolMaxTTL, "the updateIntervall needs to be > 0 AND < protocolMaxTTL")
+        // make contract owner
+        AENS.transfer(Call.caller, Contract.address, name, signature = transferSignature)
+        // update TTL (currently not possible, hardfork needed)
+        // AENS.update(Contract.address, name, Chain.block_height + state.protocolMaxTTL, 0, getCurrentPointers())
+        // transfer initial updateReward to contractRewardRecipient
+        Chain.spend(state.contractRewardRecipient, updateReward)
+        // initial metadata
+        let metadata: metadata = { owner = Call.caller
+                                    , funding = Call.value - updateReward
+                                    , updateReward = updateReward
+                                    , updateIntervall = updateIntervall
+                                    , updateCount = 1
+                                    , lastUpdate = Chain.block_height }
+        put(state{names = state.names {
+            [name] = metadata }})
+
+    stateful entrypoint deregisterName(name: string) =
+        require(Map.member(name, state.names), "the name is not registered")
+        // TODO check if caller is owner
+        // TODO transfer ownership to caller
+        // TODO refund caller
+
+    // stateful entrypoint updateName(name: string, ttl: option(Chain.ttl), client_ttl: option(Chain.ttl), pointers: option(map(string, AENS.pointee))) : unit) =
+    //     // TODO check if caller is owner
+    //     // update name
+
+    payable stateful entrypoint topUpFunds(name: string) =
+        require(Call.value > 0, "no funds provided")
+        // TODO top up funding for rewarding updates of a specific name
+
+    stateful entrypoint transferNameOwnership(name: string, newOwner: address, keepFunds: bool) =
+        require(Map.member(name, state.names), "the name is not registered")
+        // TODO check if caller is owner
+        // TODO transfer ownership to newOwner
+        // TODO transfer funds to caller if keepFunds = false
+
+    stateful entrypoint updateTtlOnBehalf(name: string, rewardRequired: bool) =
+        require(Map.member(name, state.names), "the name is not registered")
+        // TODO perform TTL update for the given name
+        // TODO payout reward to caller if enough funded
+        // TODO require enough funding if rewardRequired = true
+        // TODO update metadata
+
+    entrypoint getReward(name: string) : int =
+        require(Map.member(name, state.names), "the name is not registered")
+        // TODO require that funding > updateReward
+        // TODO return updateReward of name
+        0
+
+    entrypoint getFundMap(address: option(address)) : map(string, int) =
+        // TODO return fundMap(name, value) of names owned by address OR caller
+        {}
+    
+    entrypoint getTotalFunds(address: option(address)) : int =
+        // TODO sum funds locked in the contract of names owned by address OR caller 
+        0
+
+    entrypoint getMetadata(name: string) : option(metadata) =
+        Map.lookup(name, state.names)
+
+    // PRIVATE FUNCTIONS
+    function getCurrentPointers(name: string) : map(string, int) =
+        let accPointer: option(string) = AENS.resolve(name, "account_pubkey")          // pointee 0
+        let oraclePointer: option(string) = AENS.resolve(name, "oracle_pubkey")        // pointee 1
+        let contractPointer: option(string) = AENS.resolve(name, "contract_pubkey")    // pointee 2
+        // let channelPointer = AENS.resolve(name, "channel");         // not defined in sophia compiler ?!
+        let pointers: map(string, int) = {}
+        switch(accPointer)
+            Some(p) => pointers{[p] = 0}
+        switch(oraclePointer)
+            Some(p) => pointers{[p] = 1}
+        switch(contractPointer)
+            Some(p) => pointers{[p] = 2}
+        pointers
+
+
+    // CONSTRAINTS
+    function onlyContractOwner() =
+        require(Call.caller == state.contractOwner, "caller must be the owner of the contract")

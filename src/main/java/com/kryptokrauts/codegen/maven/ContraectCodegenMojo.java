@@ -17,7 +17,6 @@ import org.apache.maven.shared.model.fileset.util.FileSetManager;
 
 import com.kryptokrauts.codegen.CodegenConfiguration;
 import com.kryptokrauts.codegen.ContraectGenerator;
-import com.kryptokrauts.codegen.datatypes.deprecated.AddressDatatypeGenerator;
 
 @Mojo(name = "generate-contraects", defaultPhase = LifecyclePhase.GENERATE_SOURCES, requiresDependencyResolution = ResolutionScope.COMPILE_PLUS_RUNTIME)
 public class ContraectCodegenMojo extends AbstractMojo {
@@ -102,7 +101,6 @@ public class ContraectCodegenMojo extends AbstractMojo {
 						abiJsonDescription.getAbiJSONTypesTypedefElement())
 				.build();
 
-		generateDefaultDatatypes();
 		gatherContractFiles();
 		processContractFiles();
 	}
@@ -121,10 +119,6 @@ public class ContraectCodegenMojo extends AbstractMojo {
 			}
 		}
 		logFiles(aesFiles);
-	}
-
-	private void generateDefaultDatatypes() throws MojoExecutionException {
-		new AddressDatatypeGenerator(config).generate();
 	}
 
 	private void logFiles(List<String> aesFiles) {

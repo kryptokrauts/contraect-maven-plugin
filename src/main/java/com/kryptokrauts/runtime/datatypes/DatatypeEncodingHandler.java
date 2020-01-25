@@ -14,6 +14,9 @@ import com.squareup.javapoet.TypeName;
 
 public class DatatypeEncodingHandler {
 
+	/**
+	 * @deprecated
+	 */
 	protected String generatedTypesPackageName;
 
 	protected String generatedContractClassName;
@@ -24,7 +27,8 @@ public class DatatypeEncodingHandler {
 			String generatedContractClassName) {
 		this.datatypeHandlers = Arrays.asList(new StringEncoder(this),
 				new IntEncoder(this), new ListEncoder(this),
-				new AddressEncoder(this), new CustomTypeEncoder(this));
+				new AddressEncoder(this), new OptionEncoder(this),
+				new CustomTypeEncoder(this));
 		this.generatedTypesPackageName = generatedTypesPackageName;
 		this.generatedContractClassName = generatedContractClassName;
 	}
@@ -51,6 +55,9 @@ public class DatatypeEncodingHandler {
 				.findFirst().orElse(new DefaultDatatypeEncoder(this));
 	}
 
+	/**
+	 * probably deprecated section from here
+	 */
 	protected ClassInfo getCustomDatatype(String datatypeName) {
 		return getCustomDatatypes().get(datatypeName);
 	}

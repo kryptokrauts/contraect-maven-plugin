@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 
 import com.kryptokrauts.codegen.CodegenConfiguration;
 import com.kryptokrauts.codegen.ContraectGenerator;
-import com.kryptokrauts.codegen.datatypes.deprecated.AddressDatatypeGenerator;
 
 public class ContraectCodegenMojoTest {
 
@@ -62,16 +61,14 @@ public class ContraectCodegenMojoTest {
 		generator.generate(
 				new File("src/test/resources/contraects/DatatypeTest.aes")
 						.getAbsolutePath());
+		generator.generate(
+				new File("src/test/resources/contraects/AENSNameUpdater.aes")
+						.getAbsolutePath());
 		// generator.generate(new
 		// File("src/test/resources/contraects/SophiaTypes.aes").getAbsolutePath());
 		// generator.generate(
 		// new
 		// File("src/test/resources/contraects/CryptoHamster.aes").getAbsolutePath());
-	}
-
-	@Test
-	public void generateDatatypes() throws MojoExecutionException {
-		new AddressDatatypeGenerator(config).generate();
 	}
 
 	protected static String getNodeBaseUrl() throws MojoExecutionException {
