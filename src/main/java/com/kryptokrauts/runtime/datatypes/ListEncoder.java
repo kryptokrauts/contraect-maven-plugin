@@ -1,10 +1,7 @@
 package com.kryptokrauts.runtime.datatypes;
 
 import java.util.List;
-import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import org.javatuples.Pair;
 
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
@@ -17,7 +14,13 @@ import io.vertx.core.json.JsonObject;
 
 public class ListEncoder extends AbstractDatatypeEncoder {
 
+	private static final int LIST_INNER_TYPE_POS = 0;
+
 	private static final String LIST_JSON_IDENTIFIER = "list";
+
+	private static final TypeName LIST_WITH_WILDCARD_TYPDEF = ParameterizedTypeName
+			.get(ClassName.get(List.class),
+					WildcardTypeName.subtypeOf(Object.class));
 
 	public ListEncoder(DatatypeEncodingHandler resolveInstance) {
 		super(resolveInstance);
@@ -37,56 +40,36 @@ public class ListEncoder extends AbstractDatatypeEncoder {
 	}
 
 	public CodeBlock encodeValue(TypeName type, String variableName) {
-		return generateListCodeblock(type, variableName, t -> {
-			return this.resolveInstance.encodeParameter(t.getValue0(),
-					t.getValue1());
-		}).toBuilder()
+		String uniqueVariableName = this.getUniqueVariableName(variableName);
+		TypeName innerType = this.getListInnerType(type);
+
+		return CodeBlock.builder()
+				.add("$L.stream().map($L->", variableName, uniqueVariableName)
+				.add("$L",
+						this.resolveInstance.encodeParameter(innerType,
+								uniqueVariableName))
 				.add(").collect($T.toList()).toString()", Collectors.class)
 				.build();
 	}
 
 	public CodeBlock mapToReturnValue(TypeName type, String variableName) {
-		return generateListCodeblock(type, variableName, t -> {
-			return this.resolveInstance.mapToReturnValue(t.getValue0(),
-					t.getValue1());
-		}).toBuilder().add(").collect($T.toList())", Collectors.class).build();
-	}
-
-	/**
-	 * iterate over list an recursively resolve inner type
-	 * 
-	 * @param type
-	 * @param variableName
-	 * @param functionToCall
-	 * @return
-	 */
-	private CodeBlock generateListCodeblock(TypeName type, String variableName,
-			Function<Pair<TypeName, String>, CodeBlock> functionToCall) {
 		String uniqueVariableName = this.getUniqueVariableName(variableName);
-		TypeName innerType = ((ParameterizedTypeName) type).typeArguments
-				.get(0);
+		TypeName innerType = this.getListInnerType(type);
+
 		return CodeBlock.builder()
-				.add("(($T)$L).stream().map($L->",
-						getParametrizedList(innerType), variableName,
-						uniqueVariableName)
-				.add(functionToCall
-						.apply(Pair.with(innerType, uniqueVariableName)))
-				.build();
+				.add("(($T)$L).stream().map($L->", LIST_WITH_WILDCARD_TYPDEF,
+						variableName, uniqueVariableName)
+				.add("$L",
+						this.resolveInstance.mapToReturnValue(innerType,
+								uniqueVariableName))
+				.add(").collect($T.toList())", Collectors.class).build();
 	}
-
-	private TypeName getParametrizedList(TypeName type) {
-		return ParameterizedTypeName.get(ClassName.get(List.class), type);
-	}
-
-	private TypeName listWildCard = ParameterizedTypeName.get(
-			ClassName.get(List.class),
-			WildcardTypeName.subtypeOf(Object.class));
 
 	@Override
 	public TypeName getTypeName(Object type) {
 		return ParameterizedTypeName.get(ClassName.get(List.class),
-				this.resolveInstance
-						.getTypeName(parseToJsonArray(type).getValue(0)));
+				this.resolveInstance.getTypeName(
+						parseToJsonArray(type).getValue(LIST_INNER_TYPE_POS)));
 	}
 
 	private JsonArray parseToJsonArray(Object type) {
@@ -104,4 +87,13 @@ public class ListEncoder extends AbstractDatatypeEncoder {
 		// ListEncoder.class.getName(), "parseToJsonArray",
 		// "expected list definition but got " + type));
 	}
+
+	private TypeName getListInnerType(TypeName type) {
+		if (type instanceof ParameterizedTypeName) {
+			return ((ParameterizedTypeName) type).typeArguments
+					.get(LIST_INNER_TYPE_POS);
+		}
+		throw new RuntimeException("unexpected type");
+	}
+
 }

@@ -19,6 +19,12 @@ contract DatatypeTest =
     
     entrypoint testOption(varA: option(string)) : option(string) =
     	varA 
+   
+    entrypoint testMap(mapValue: map(int, string)) : map(int, string) =
+        mapValue
+        
+    entrypoint testListMap(mapValue: list(map(int, string))) : list(map(int, string)) =
+        mapValue
         
     entrypoint testCA(varA: companyAddress) : companyAddress =
         varA
@@ -41,3 +47,5 @@ contract DatatypeTest =
     entrypoint testInt(varA: int) : int =
         varA
     
+    entrypoint testListListMap(mapValue: list(list(map(int, int)))) : list(list(map(int, int))) =
+        mapValue

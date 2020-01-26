@@ -33,7 +33,6 @@ import com.kryptokrauts.aeternity.sdk.service.transaction.domain.DryRunTransacti
 import com.kryptokrauts.aeternity.sdk.service.transaction.domain.PostTransactionResult;
 import com.kryptokrauts.aeternity.sdk.service.transaction.type.model.ContractCallTransactionModel;
 import com.kryptokrauts.aeternity.sdk.service.transaction.type.model.ContractCreateTransactionModel;
-import com.kryptokrauts.codegen.datatypes.deprecated.TypeResolverRefactored;
 import com.kryptokrauts.runtime.datatypes.DatatypeEncodingHandler;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
@@ -99,15 +98,12 @@ public class ContraectGenerator {
 	@NonNull
 	private CodegenConfiguration config;
 
-	private TypeResolverRefactored typeResolver;
-
 	private DatatypeEncodingHandler datatypeEncodingHandler;
 
 	private CustomTypesGenerator customTypesGenerator;
 
 	public ContraectGenerator(CodegenConfiguration config) {
 		this.config = config;
-		this.typeResolver = new TypeResolverRefactored();
 	}
 
 	public void generate(String aesFile) throws MojoExecutionException {

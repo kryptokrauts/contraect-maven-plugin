@@ -28,7 +28,7 @@ public class DatatypeEncodingHandler {
 		this.datatypeHandlers = Arrays.asList(new StringEncoder(this),
 				new IntEncoder(this), new ListEncoder(this),
 				new AddressEncoder(this), new OptionEncoder(this),
-				new CustomTypeEncoder(this));
+				new CustomTypeEncoder(this), new MapEncoder(this));
 		this.generatedTypesPackageName = generatedTypesPackageName;
 		this.generatedContractClassName = generatedContractClassName;
 	}
