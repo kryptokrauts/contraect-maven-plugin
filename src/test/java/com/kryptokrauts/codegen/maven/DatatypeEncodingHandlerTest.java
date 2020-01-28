@@ -4,14 +4,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import com.google.common.collect.ImmutableMap;
-import com.kryptokrauts.runtime.datatypes.DatatypeEncodingHandler;
+import com.kryptokrauts.codegen.datatypes.DatatypeMappingHandler;
 import com.squareup.javapoet.TypeName;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 public class DatatypeEncodingHandlerTest {
-  private DatatypeEncodingHandler datatypeEncodingHandler = new DatatypeEncodingHandler();
+  private DatatypeMappingHandler datatypeEncodingHandler = new DatatypeMappingHandler();
 
   @Test
   public void testParameterEncoding() {

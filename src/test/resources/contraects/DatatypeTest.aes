@@ -20,7 +20,7 @@ contract DatatypeTest =
     entrypoint testOption(varA: option(string)) : option(string) =
     	varA 
    
-    entrypoint testMap(mapValue: map(int, string)) : map(int, string) =
+    entrypoint testMap(mapValue: map(int, bool)) : map(int, bool) =
         mapValue
         
     entrypoint testListMap(mapValue: list(map(int, string))) : list(map(int, string)) =
@@ -31,6 +31,15 @@ contract DatatypeTest =
         
     entrypoint testC(varA: company) : company =
         varA
+       
+    entrypoint testSingle(tupleValue: int) : (int) =
+        tupleValue
+        
+    entrypoint testTuple(tupleValue: int * bool) : (int * bool) =
+        tupleValue
+        
+    entrypoint testOctet(tupleValue: int * bool * int * bool * int * bool * int * bool) : (int * bool * int * bool * int * bool * int * bool) =
+        tupleValue
     
     entrypoint testStringList(listStringValue: list(string)) : list(string) =
         listStringValue
