@@ -55,6 +55,9 @@ contract DatatypeTest =
     
     entrypoint testInt(varA: int) : int =
         varA
+        
+    entrypoint testBool(varA: bool) : bool =
+        varA
     
     entrypoint testListListMap(mapValue: list(list(map(int, int)))) : list(list(map(int, int))) =
         mapValue
