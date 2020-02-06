@@ -16,35 +16,98 @@ contract SophiaTypes =
          firstname: string,
          lastname: string }
          
-    entrypoint testAddress(addressValue: address) : address =
-        addressValue
+    entrypoint testCompanyAddress(companyAddressValue: companyAddress) : companyAddress =
+        companyAddressValue
         
-    entrypoint testInt(intValue: int) : int =
-        intValue
-
-    entrypoint testMap(mapValue: map(int, bool)) : map(int, bool) =
-        mapValue
+    entrypoint testCompany(companyValue: company) : company =
+        companyValue
         
-    entrypoint testListMap(mapValue: list(map(int, bool))) : list(map(int, bool)) =
-        mapValue
-        
-    entrypoint testListListMap(mapValue: list(list(map(int, bool)))) : list(list(map(int, bool))) =
-        mapValue
+    entrypoint testEmployee(employeeValue: employee) : employee =
+        employeeValue
+       
+    entrypoint testSingle(singleValue: int) : (int) =
+        singleValue
         
     entrypoint testTuple(tupleValue: int * bool) : (int * bool) =
         tupleValue
+         
+    entrypoint testInt(intValue: int) : int =
+        intValue
+
+    entrypoint testAddress(addressValue: address) : address =
+        addressValue
+
+    entrypoint testBool(boolValue: bool) : bool =
+        boolValue
+
+    entrypoint testBits(bitsValue: bits) : bits =
+        bitsValue
+
+    entrypoint testBytes(bytesValue: bytes(64)) : bytes(64) =
+        bytesValue
+
+    entrypoint testString(stringValue: string) : string =
+        stringValue
         
-    entrypoint testListIntInt(listIntValue: list(int * int)) : list(int * int) =
-        listIntValue
-    
+    entrypoint testListString(listStringValue: list(string)) : list(string) =
+        listStringValue
+
     entrypoint testListInt(listIntValue: list(int)) : list(int) =
         listIntValue
-    
+
     entrypoint testListAddressInt(listAddressIntValue: list(address * int)) : list(address * int) =
         listAddressIntValue
-        
-    entrypoint testIntStr(intValue: int, stringValue: string) : string =
-        String.concat(stringValue,Int.to_str(intValue))
-        
-    entrypoint testEmployee(eValue: employee) : employee =
-        eValue
+
+    entrypoint testCompanyRecord(companyRecordValue: company) : company =
+        companyRecordValue
+    
+    entrypoint testMapStringAddress(mapStringAddressValue: map(string, address)) : map(string, address) =
+        mapStringAddressValue
+
+    entrypoint testOption(optionValue: option(int)) : option(int) =
+        optionValue
+
+    entrypoint testHash(hashValue: hash) : hash =
+        hashValue
+
+    entrypoint testSignature(signatureValue: signature) : signature =
+        signatureValue
+
+    stateful entrypoint testIntStateful(intValue: int) : int =
+        intValue
+
+    stateful entrypoint testAddressStateful(addressValue: address) : address =
+        addressValue
+
+    stateful entrypoint testBoolStateful(boolValue: bool) : bool =
+        boolValue
+
+    stateful entrypoint testBitsStateful(bitsValue: bits) : bits =
+        bitsValue
+
+    stateful entrypoint testBytesStateful(bytesValue: bytes(64)) : bytes(64) =
+        bytesValue
+
+    entrypoint testStringStateful(stringValue: string) : string =
+        stringValue
+
+    stateful entrypoint testListIntStateful(listIntValue: list(int)) : list(int) =
+        listIntValue
+
+    stateful entrypoint testListAddressIntStateful(listAddressIntValue: list(address * int)) : list(address * int) =
+        listAddressIntValue
+
+    stateful entrypoint testCompanyRecordStateful(companyRecordValue: company) : company =
+        companyRecordValue
+    
+    stateful entrypoint testMapStringAddressStateful(mapStringAddressValue: map(string, address)) : map(string, address) =
+        mapStringAddressValue
+
+    stateful entrypoint testOptionStateful(optionValue: option('a)) : option('a) =
+        optionValue
+
+    stateful entrypoint testHashStateful(hashValue: hash) : hash =
+        hashValue
+
+    stateful entrypoint testSignatureStateful(signatureValue: signature) : signature =
+        signatureValue

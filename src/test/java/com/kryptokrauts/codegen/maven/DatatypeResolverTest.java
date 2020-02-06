@@ -6,28 +6,42 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.io.File;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.maven.plugin.MojoExecutionException;
 import org.javatuples.Pair;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kryptokrauts.aeternity.sdk.service.aeternity.AeternityServiceConfiguration;
 import com.kryptokrauts.codegen.ContraectGenerator;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 
 public class DatatypeResolverTest extends BaseTest {
 
-	private String datatypeTestClassName = "DatatypeTest";
+	private static String datatypeTestClassName = "SophiaTypes";
 
-	@Test
-	public void testTypeMappings() throws MojoExecutionException {
+	private static Object datatypeTestContractInstance;
+
+	@BeforeAll
+	public static void setup() throws Exception {
 		ContraectGenerator generator = new ContraectGenerator(config);
 		generator.generate(new File("src/test/resources/contraects/"
 				+ datatypeTestClassName + ".aes").getAbsolutePath());
+		datatypeTestContractInstance = Class
+				.forName(targetPackage + "." + datatypeTestClassName)
+				.getConstructor(AeternityServiceConfiguration.class,
+						String.class)
+				.newInstance(aeternityServiceConfig, null);
+		datatypeTestContractInstance.getClass().getDeclaredMethod("deploy")
+				.invoke(datatypeTestContractInstance);
+	}
+
+	@Test
+	public void testTypeMappings() {
 
 		Map<String, Object> typeResolvingMap = new HashMap<String, Object>();
 		// simple types
@@ -35,13 +49,17 @@ public class DatatypeResolverTest extends BaseTest {
 		typeResolvingMap.put("testString", TypeName.get(String.class));
 		typeResolvingMap.put("testBool", TypeName.get(Boolean.class));
 		// complex types
-		typeResolvingMap.put("testStringList",
+		typeResolvingMap.put("testListString",
 				ParameterizedTypeName.get(List.class, String.class));
 		typeResolvingMap.put("testTuple", ParameterizedTypeName.get(Pair.class,
 				BigInteger.class, Boolean.class));
 		// custom types
 		typeResolvingMap.put("testAddress",
 				targetPackage + "." + datatypeTestClassName + "$Address");
+		typeResolvingMap.put("testCompanyAddress", targetPackage + "."
+				+ datatypeTestClassName + "$CompanyAddress");
+		typeResolvingMap.put("testEmployee",
+				targetPackage + "." + datatypeTestClassName + "$Employee");
 		// typeNames.put(
 		// listOfPairWithAddress,
 		// ParameterizedTypeName.get(
@@ -80,111 +98,64 @@ public class DatatypeResolverTest extends BaseTest {
 		});
 	}
 
-	// public void testUnsupportedTypeMappings() throws Exception {
-	// Assertions.assertThrows(RuntimeException.class, () -> {
-	// typeResolver.getReturnType(getTypeDefinitionString(tupleEleven));
-	// });
-	// }
+	/**
+	 * this makes an end to end test for the test contract - given value should
+	 * be returned
+	 */
+	@Test
+	public void testInputOutput() throws Exception {
+		Map<String, Object> ioTestMap = new HashMap<String, Object>();
+		// simple types
+		ioTestMap.put("testInt", BigInteger.valueOf(42));
+		ioTestMap.put("testString", "aeternity");
+		ioTestMap.put("testBool", Boolean.TRUE);
+		// complex types
+		ioTestMap.put("testListString",
+				Arrays.asList("one", "of", "four", "strings"));
+		ioTestMap.put("testTuple",
+				new Pair<BigInteger, Boolean>(BigInteger.valueOf(42), true));
+		// custom types
+		// @todo equals method in generated types
+		// ioTestMap.put("testAddress", getAddressInstance(
+		// "ak_2gx9MEFxKvY9vMG5YnqnXWv1hCsX7rgnfvBLJS4aQurustR1rt"));
+
+		// test the mapping
+		ioTestMap.forEach((functionName, args) -> {
+			try {
+				System.out.println(
+						"Testing input/output for function " + functionName);
+				assertEquals(args, getMethod(functionName)
+						.invoke(datatypeTestContractInstance, args));
+			} catch (Exception e) {
+				fail("Failed testing type mapping for function " + functionName,
+						e);
+			}
+		});
+	}
 
 	private String getReturnTypeName(String functionName) throws Exception {
+		Method m = getMethod(functionName);
+		if (m != null) {
+			return m.getGenericReturnType().getTypeName();
+		}
+		return null;
+	}
+
+	private Method getMethod(String functionName) throws Exception {
 		for (Method method : Class
 				.forName(targetPackage + "." + datatypeTestClassName)
 				.getDeclaredMethods()) {
 			if (method.getName().equals(functionName)) {
-				return method.getGenericReturnType().getTypeName();
+				return method;
 			}
 		}
 		return null;
 	}
 
-	private Object getTypeDefinitionString(String typeDefinition) {
-		ObjectMapper mapper = new ObjectMapper();
-		Map<?, ?> parsed;
-		try {
-			parsed = mapper.readValue(typeDefinition, Map.class);
-			return parsed.get("type");
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
+	private Object getAddressInstance(String address) throws Exception {
+		return Class
+				.forName(targetPackage + "." + datatypeTestClassName
+						+ "$Address")
+				.getConstructor(String.class).newInstance(address);
 	}
-
-	private static String listMapType = "{\"type\": {\r\n"
-			+ "					\"list\": [\r\n"
-			+ "						{\r\n"
-			+ "							\"map\": [\r\n"
-			+ "								\"int\",\r\n"
-			+ "								\"bool\"\r\n"
-			+ "							]\r\n" + "						}\r\n"
-			+ "					]\r\n" + "				}}";
-
-	private static String listListMapType = "{\"type\":{\r\n"
-			+ "					\"list\": [\r\n"
-			+ "						{\r\n"
-			+ "							\"list\": [\r\n"
-			+ "								{\r\n"
-			+ "									\"map\": [\r\n"
-			+ "										\"int\",\r\n"
-			+ "										\"bool\"\r\n"
-			+ "									]\r\n"
-			+ "								}\r\n"
-			+ "							]\r\n" + "						}\r\n"
-			+ "					]\r\n" + "				}}";
-
-	private static String mapType = "{\"type\": {\r\n"
-			+ "							\"map\": [\r\n"
-			+ "								\"int\",\r\n"
-			+ "								\"bool\"\r\n"
-			+ "							]\r\n" + "						}}";
-
-	private static String intType = "{\"type\": \"int\"}";
-
-	private static String stringType = "{\"type\": \"string\"}";
-
-	private static String boolType = "{\"type\": \"bool\"}";
-
-	private static String tuplePair = "{\"type\": {\r\n"
-			+ "					\"tuple\": [\r\n"
-			+ "						\"int\",\r\n"
-			+ "						\"string\"\r\n" + "					]\r\n"
-			+ "				}}";
-
-	private static String listTupleTriplet = "{\"type\": {\r\n"
-			+ "						\"list\": [\r\n"
-			+ "						{\r\n"
-			+ "							\"tuple\": [\r\n"
-			+ "								\"int\",\r\n"
-			+ "								\"int\",\r\n"
-			+ "								\"string\"\r\n"
-			+ "							]\r\n" + "						}\r\n"
-			+ "					]" + "					}}";
-
-	private static String listIntType = "{\"type\": {\r\n"
-			+ "						\"list\": [\r\n"
-			+ "							\"int\"\r\n"
-			+ "						]\r\n" + "					}}";
-
-	private static String listOfPairWithAddress = "{\"type\": {\r\n"
-			+ "						\"list\": [\r\n"
-			+ "							{\r\n"
-			+ "								\"tuple\": [\r\n"
-			+ "									\"address\",\r\n"
-			+ "									\"int\"\r\n"
-			+ "								]\r\n"
-			+ "							}\r\n" + "						]\r\n"
-			+ "					}}";
-
-	private static String tupleEleven = "{\"type\": {\r\n"
-			+ "					\"tuple\": [\r\n"
-			+ "						\"int\",\r\n"
-			+ "						\"int\",\r\n"
-			+ "						\"int\",\r\n"
-			+ "						\"int\",\r\n"
-			+ "						\"int\",\r\n"
-			+ "						\"int\",\r\n"
-			+ "						\"int\",\r\n"
-			+ "						\"int\",\r\n"
-			+ "						\"int\",\r\n"
-			+ "						\"int\",\r\n"
-			+ "						\"string\"\r\n" + "					]\r\n"
-			+ "				}}";
 }

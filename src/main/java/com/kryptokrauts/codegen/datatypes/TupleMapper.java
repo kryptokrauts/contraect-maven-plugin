@@ -61,15 +61,19 @@ public class TupleMapper extends AbstractDatatypeMapper {
 	}
 
 	public CodeBlock mapToReturnValue(TypeName type, String variableName) {
-
+		AtomicInteger cnt = new AtomicInteger();
 		return CodeBlock.builder()
 				.add("$T.with(",
 						getTupleSizeClass(this.getInnerTypes(type).size()))
-				.add(this.getInnerTypes(type).stream()
-						.map(t -> this.resolveInstance
-								.mapToReturnValue(t, variableName).toString())
-						.collect(Collectors.joining(",")))
-				.add(")").build();
+				.add(this.getInnerTypes(type).stream().map(t -> {
+					CodeBlock currentListElement = CodeBlock.builder()
+							.add("(($T)$L).get($L)", LIST_WITH_WILDCARD_TYPDEF,
+									variableName, cnt.getAndIncrement())
+							.build();
+					return this.resolveInstance
+							.mapToReturnValue(t, currentListElement.toString())
+							.toString();
+				}).collect(Collectors.joining(","))).add(")").build();
 	}
 
 	@Override

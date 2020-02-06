@@ -10,6 +10,12 @@ import org.junit.jupiter.api.BeforeAll;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ClassInfo;
+import com.kryptokrauts.aeternity.sdk.constants.Network;
+import com.kryptokrauts.aeternity.sdk.constants.VirtualMachine;
+import com.kryptokrauts.aeternity.sdk.domain.secret.impl.BaseKeyPair;
+import com.kryptokrauts.aeternity.sdk.service.aeternity.AeternityServiceConfiguration;
+import com.kryptokrauts.aeternity.sdk.service.keypair.KeyPairService;
+import com.kryptokrauts.aeternity.sdk.service.keypair.KeyPairServiceFactory;
 import com.kryptokrauts.codegen.CodegenConfiguration;
 
 public abstract class BaseTest {
@@ -23,6 +29,8 @@ public abstract class BaseTest {
 	protected static final String targetPath = "target/generated-sources/contraect";
 
 	protected static final String targetPackage = "com.kryptokrauts.contraect.generated";
+
+	protected static AeternityServiceConfiguration aeternityServiceConfig;
 
 	@BeforeAll
 	public static void initConfig() throws MojoExecutionException {
@@ -54,8 +62,21 @@ public abstract class BaseTest {
 						abiJsonDescription.getAbiJSONTypesNameElement())
 				.abiJSONTypesTypedefElement(
 						abiJsonDescription.getAbiJSONTypesTypedefElement())
-				.build();
+				.resultAbortKey(abiJsonDescription.getResultAbortKey()).build();
+
+		KeyPairService keyPairService = new KeyPairServiceFactory()
+				.getService();
+
+		BaseKeyPair baseKeyPair = keyPairService.generateBaseKeyPairFromSecret(
+				"79816BBF860B95600DDFABF9D81FEE81BDB30BE823B17D80B9E48BE0A7015ADF");
+
+		aeternityServiceConfig = AeternityServiceConfiguration.configure()
+				.compilerBaseUrl("http://compiler.aelocal:3080")
+				.baseUrl("http://aelocal").network(Network.DEVNET)
+				.baseKeyPair(baseKeyPair).targetVM(VirtualMachine.FATE)
+				.compile();
 	}
+
 	protected static String getNodeBaseUrl() throws MojoExecutionException {
 		String nodeBaseUrl = System.getenv(AETERNITY_BASE_URL);
 		if (nodeBaseUrl == null) {
