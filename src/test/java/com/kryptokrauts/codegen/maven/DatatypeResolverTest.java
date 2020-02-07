@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.javatuples.Pair;
 import org.junit.jupiter.api.BeforeAll;
@@ -114,6 +115,9 @@ public class DatatypeResolverTest extends BaseTest {
 				Arrays.asList("one", "of", "four", "strings"));
 		ioTestMap.put("testTuple",
 				new Pair<BigInteger, Boolean>(BigInteger.valueOf(42), true));
+		ioTestMap.put("testOption", Optional.of(BigInteger.valueOf(42)));
+		ioTestMap.put("testOptionList", Optional.of(Arrays
+				.asList(BigInteger.valueOf(42), BigInteger.valueOf(200))));
 		// custom types
 		// @todo equals method in generated types
 		// ioTestMap.put("testAddress", getAddressInstance(

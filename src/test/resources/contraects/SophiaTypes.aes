@@ -16,6 +16,9 @@ contract SophiaTypes =
          firstname: string,
          lastname: string }
          
+    entrypoint testListListMap(mapValue: list(list(map(int, int)))) : list(list(map(int, int))) =
+        mapValue
+    
     entrypoint testCompanyAddress(companyAddressValue: companyAddress) : companyAddress =
         companyAddressValue
         
@@ -65,6 +68,12 @@ contract SophiaTypes =
         mapStringAddressValue
 
     entrypoint testOption(optionValue: option(int)) : option(int) =
+        optionValue
+        
+    entrypoint testOptionStr(optionValue: option(string)) : option(string) =
+        optionValue
+        
+    entrypoint testOptionList(optionValue: option(list(int))) : option(list(int)) =
         optionValue
 
     entrypoint testHash(hashValue: hash) : hash =
