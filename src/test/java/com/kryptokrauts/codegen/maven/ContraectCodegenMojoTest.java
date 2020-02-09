@@ -15,6 +15,8 @@ public class ContraectCodegenMojoTest extends BaseTest {
         new File("src/test/resources/contraects/DatatypeTest.aes").getAbsolutePath());
     generator.generate(
         new File("src/test/resources/contraects/AENSNameUpdater.aes").getAbsolutePath());
+    generator.generate(
+        new File("src/test/resources/contraects/FungibleToken.aes").getAbsolutePath());
     // generator.generate(new
     // File("src/test/resources/contraects/SophiaTypes.aes").getAbsolutePath());
     // generator.generate(
