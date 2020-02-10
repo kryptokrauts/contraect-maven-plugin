@@ -16,6 +16,9 @@ contract SophiaTypes =
          firstname: string,
          lastname: string }
          
+    stateful payable entrypoint testPayableString(stringValue: string) : string =
+        stringValue
+    
     entrypoint testListListMap(mapValue: list(list(map(int, int)))) : list(list(map(int, int))) =
         mapValue
     

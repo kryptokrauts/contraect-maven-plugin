@@ -92,6 +92,7 @@ public class ContraectCodegenMojo extends AbstractMojo {
             .abiJSONTypesNameElement(abiJsonDescription.getAbiJSONTypesNameElement())
             .abiJSONTypesTypedefElement(abiJsonDescription.getAbiJSONTypesTypedefElement())
             .resultAbortKey(abiJsonDescription.getResultAbortKey())
+            .abiJSONFunctionPayableElement(abiJsonDescription.getAbiJSONFunctionPayableElement())
             .build();
 
     gatherContractFiles();

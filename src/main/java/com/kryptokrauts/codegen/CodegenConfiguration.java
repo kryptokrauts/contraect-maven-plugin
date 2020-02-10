@@ -49,6 +49,8 @@ public class CodegenConfiguration {
 
   private String abiJSONFunctionStatefulElement;
 
+  private String abiJSONFunctionPayableElement;
+
   private String abiJSONTypesElement;
 
   private String abiJSONTypesNameElement;

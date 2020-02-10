@@ -54,6 +54,10 @@ public class ABIJsonDescription {
   @Parameter(defaultValue = "stateful")
   private String abiJSONFunctionStatefulElement = "stateful";
 
+  /** json element name for payable */
+  @Parameter(defaultValue = "payable")
+  private String abiJSONFunctionPayableElement = "payable";
+
   /** json element name for custom datatypes */
   @Parameter(defaultValue = "type_defs")
   private String abiJSONTypesElement = "type_defs";

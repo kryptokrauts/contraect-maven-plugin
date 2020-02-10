@@ -261,6 +261,7 @@ public class ContraectGenerator {
     String VAR_CC_POST_TX_RESULT = "contractCallPostTxResult";
     String VAR_CC_POST_TX_INFO = "contractCallPostTxInfo";
     String VAR_ENCODED_PARAM_LIST = "encodedParameterList";
+    String VAR_CC_AMOUNT = "amount";
 
     String functionName =
         replaceInvalidChars(functionDescription.getString(config.getAbiJSONFunctionsNameElement()));
@@ -271,6 +272,16 @@ public class ContraectGenerator {
 
     // resolve list of method parameters
     List<ParameterSpec> params = getParameterSpecFromSignature(functionDescription);
+
+    boolean isPayable = false;
+    ParameterSpec amount = null;
+
+    if (functionDescription.containsKey("payable")) {
+      if (functionDescription.getBoolean("payable")) {
+        isPayable = true;
+        amount = ParameterSpec.builder(TypeName.get(BigInteger.class), VAR_CC_AMOUNT).build();
+      }
+    }
 
     // resolve the return type
     TypeName resultType =
@@ -294,12 +305,13 @@ public class ContraectGenerator {
                 Arrays.class,
                 getParameterEncoding(params))
             .addStatement(
-                "$T $L = this.$N($S,$L)",
+                "$T $L = this.$N($S,$L,$L)",
                 ContractCallTransactionModel.class,
                 VAR_CC_MODEL,
                 GCPM_CREATE_CCM,
                 functionName,
-                VAR_ENCODED_PARAM_LIST)
+                VAR_ENCODED_PARAM_LIST,
+                isPayable ? VAR_CC_AMOUNT : "null")
             .addStatement(
                 "$T $L = this.$N($L,$S)",
                 DryRunTransactionResult.class,
@@ -389,14 +401,21 @@ public class ContraectGenerator {
                 VAR_RESULT_OBJECT)
             .build();
 
-    return MethodSpec.methodBuilder(functionName)
-        .addParameters(params)
-        .addCode(codeBlock)
-        .addJavadoc(stateful ? "Stateful function" : "")
-        .returns(resultType)
-        .addJavadoc("")
-        .addModifiers(Modifier.PUBLIC)
-        .build();
+    MethodSpec method =
+        MethodSpec.methodBuilder(functionName)
+            .addParameters(params)
+            .addCode(codeBlock)
+            .addJavadoc(stateful ? "Stateful function" : "")
+            .returns(resultType)
+            .addJavadoc("")
+            .addModifiers(Modifier.PUBLIC)
+            .build();
+
+    if (amount != null) {
+      method = method.toBuilder().addParameter(amount).build();
+    }
+
+    return method;
   }
 
   private CodeBlock mapResultCodeblock(
@@ -823,6 +842,7 @@ public class ContraectGenerator {
   private MethodSpec buildCreateTransactionCallModelMethod() {
     String MP_PARAMS = "params";
     String MP_FUNCTION = "function";
+    String MP_AMOUNT = "amount";
 
     String VAR_CALLDATA = "callData";
 
@@ -833,7 +853,8 @@ public class ContraectGenerator {
                     ParameterSpec.builder(String.class, MP_FUNCTION).build(),
                     ParameterSpec.builder(
                             ParameterizedTypeName.get(List.class, String.class), MP_PARAMS)
-                        .build()))
+                        .build(),
+                    ParameterSpec.builder(TypeName.get(BigInteger.class), MP_AMOUNT).build()))
             .addCode(
                 CodeBlock.builder()
                     .addStatement(
@@ -848,7 +869,7 @@ public class ContraectGenerator {
                             + ".gas($T.valueOf(1579000l))"
                             + ".contractId($L)"
                             + ".gasPrice($T.valueOf($T.MINIMAL_GAS_PRICE))"
-                            + ".amount($T.ZERO)"
+                            + ".amount($L!=null?$L:$T.ZERO)"
                             + ".nonce(this.$N())"
                             + ".callerId(this.$L.getBaseKeyPair().getPublicKey())"
                             + ".ttl($T.ZERO)"
@@ -860,6 +881,8 @@ public class ContraectGenerator {
                         GCV_DEPLOYED_CONTRACT_ID,
                         BigInteger.class,
                         BaseConstants.class,
+                        MP_AMOUNT,
+                        MP_AMOUNT,
                         BigInteger.class,
                         GCPM_NEXT_NONCE,
                         GCV_CONFIG,

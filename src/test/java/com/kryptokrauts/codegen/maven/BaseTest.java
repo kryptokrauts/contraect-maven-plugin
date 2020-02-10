@@ -57,6 +57,7 @@ public abstract class BaseTest {
             .abiJSONTypesNameElement(abiJsonDescription.getAbiJSONTypesNameElement())
             .abiJSONTypesTypedefElement(abiJsonDescription.getAbiJSONTypesTypedefElement())
             .resultAbortKey(abiJsonDescription.getResultAbortKey())
+            .abiJSONFunctionPayableElement(abiJsonDescription.getAbiJSONFunctionPayableElement())
             .build();
 
     KeyPairService keyPairService = new KeyPairServiceFactory().getService();
