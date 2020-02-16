@@ -10,8 +10,9 @@ public class ContraectCodegenMojoTest extends BaseTest {
   @Test
   public void testCompileContraects() throws MojoExecutionException {
 
-    ContraectGenerator generator = new ContraectGenerator(config);
+    ContraectGenerator generator = new ContraectGenerator(config, abiJsonDescription);
     generator.generate(new File("src/test/resources/contraects/SophiaTypes.aes").getAbsolutePath());
+
     generator.generate(
         new File("src/test/resources/contraects/DatatypeTest.aes").getAbsolutePath());
     generator.generate(

@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableMap;
 import com.kryptokrauts.aeternity.sdk.exception.InvalidParameterException;
 import com.kryptokrauts.aeternity.sdk.util.EncodingUtils;
 import com.kryptokrauts.codegen.datatypes.DatatypeMappingHandler;
+import com.kryptokrauts.codegen.maven.ABIJsonDescriptionConfiguration;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
@@ -57,6 +58,9 @@ public class CustomTypesGenerator {
                           .add(new JsonObject().put("name", ADDRESS_TYPE).put("type", "string"))));
 
   @NonNull DatatypeMappingHandler datatypeEncodingHandler;
+
+  @NonNull ABIJsonDescriptionConfiguration abiJsonDescriptionConfiguration;
+
   /** @TODO check if record before -> if not, don't create type */
   public List<TypeSpec> generateCustomTypes(JsonArray customTypes, Object state) {
     customTypes.add(ADDRESS_DATATYPE);

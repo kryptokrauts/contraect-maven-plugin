@@ -9,7 +9,6 @@ import com.kryptokrauts.aeternity.sdk.domain.secret.impl.BaseKeyPair;
 import com.kryptokrauts.aeternity.sdk.service.aeternity.AeternityServiceConfiguration;
 import com.kryptokrauts.aeternity.sdk.service.keypair.KeyPairService;
 import com.kryptokrauts.aeternity.sdk.service.keypair.KeyPairServiceFactory;
-import com.kryptokrauts.codegen.CodegenConfiguration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -19,6 +18,8 @@ import org.junit.jupiter.api.BeforeAll;
 public abstract class BaseTest {
 
   protected static CodegenConfiguration config;
+
+  protected static ABIJsonDescriptionConfiguration abiJsonDescription;
 
   protected static final String AETERNITY_BASE_URL = "AETERNITY_BASE_URL";
 
@@ -32,33 +33,12 @@ public abstract class BaseTest {
 
   @BeforeAll
   public static void initConfig() throws MojoExecutionException {
-    ABIJsonDescription abiJsonDescription = new ABIJsonDescription();
-    config =
-        CodegenConfiguration.builder()
-            .compilerBaseUrl(getCompilerBaseUrl())
-            .targetPath(targetPath)
-            .targetPackage(targetPackage)
-            .datatypePackage(targetPackage + ".datatypes")
-            .numTrials(60)
-            .initFunctionName(abiJsonDescription.getInitFunctionName())
-            .abiJSONFunctionArgumentElement(abiJsonDescription.getAbiJSONFunctionArgumentElement())
-            .abiJSONFunctionArgumentNameElement(
-                abiJsonDescription.getAbiJSONFunctionArgumentNameElement())
-            .abiJSONFunctionArgumentTypeElement(
-                abiJsonDescription.getAbiJSONFunctionArgumentTypeElement())
-            .abiJSONFunctionsElement(abiJsonDescription.getAbiJSONFunctionsElement())
-            .abiJSONFunctionsNameElement(abiJsonDescription.getAbiJSONFunctionsNameElement())
-            .abiJSONFunctionsReturnTypeElement(
-                abiJsonDescription.getAbiJSONFunctionsReturnTypeElement())
-            .abiJSONFunctionStatefulElement(abiJsonDescription.getAbiJSONFunctionStatefulElement())
-            .abiJSONNameElement(abiJsonDescription.getAbiJSONNameElement())
-            .abiJSONRootElement(abiJsonDescription.getAbiJSONRootElement())
-            .abiJSONTypesElement(abiJsonDescription.getAbiJSONTypesElement())
-            .abiJSONTypesNameElement(abiJsonDescription.getAbiJSONTypesNameElement())
-            .abiJSONTypesTypedefElement(abiJsonDescription.getAbiJSONTypesTypedefElement())
-            .resultAbortKey(abiJsonDescription.getResultAbortKey())
-            .abiJSONFunctionPayableElement(abiJsonDescription.getAbiJSONFunctionPayableElement())
-            .build();
+    abiJsonDescription = new ABIJsonDescriptionConfiguration();
+    config = new CodegenConfiguration();
+    config.setCompilerBaseUrl(getCompilerBaseUrl());
+    config.setTargetPath(targetPath);
+    config.setTargetPackage(targetPackage);
+    config.setDatatypePackage(targetPackage + ".datatypes");
 
     KeyPairService keyPairService = new KeyPairServiceFactory().getService();
 

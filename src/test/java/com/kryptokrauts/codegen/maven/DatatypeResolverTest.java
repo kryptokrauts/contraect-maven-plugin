@@ -28,7 +28,7 @@ public class DatatypeResolverTest extends BaseTest {
 
   @BeforeAll
   public static void setup() throws Exception {
-    ContraectGenerator generator = new ContraectGenerator(config);
+    ContraectGenerator generator = new ContraectGenerator(config, abiJsonDescription);
     generator.generate(
         new File("./src/test/resources/contraects/" + datatypeTestClassName + ".aes")
             .getAbsolutePath());
