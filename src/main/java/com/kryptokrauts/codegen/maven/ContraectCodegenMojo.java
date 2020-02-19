@@ -30,8 +30,7 @@ public class ContraectCodegenMojo extends AbstractMojo {
 
   /** describes the abi json tags which are parsed during contract generation */
   @Parameter(alias = "abi-json")
-  private ABIJsonDescriptionConfiguration abiJsonDescription =
-      new ABIJsonDescriptionConfiguration();
+  private ABIJsonConfiguration abiJsonDescription = new ABIJsonConfiguration();
 
   // the generator class
   ContraectGenerator contraectGenerator;

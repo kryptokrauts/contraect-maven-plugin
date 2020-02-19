@@ -17,6 +17,9 @@ public class CodegenConfiguration {
 
   private static AeternityService aeternityService;
 
+  /** name of the init function */
+  private String initFunctionName = "init";
+
   /** The package for generated contracts */
   private String targetPackage = "com.kryptokrauts.contraect.generated";
 

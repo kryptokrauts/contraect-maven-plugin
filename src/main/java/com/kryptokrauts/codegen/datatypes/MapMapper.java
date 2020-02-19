@@ -106,7 +106,7 @@ public class MapMapper extends AbstractDatatypeMapper {
       return ((ParameterizedTypeName) type).typeArguments.get(pos);
     }
     throw new RuntimeException(
-        getUnsupportedMappingException(
+        getUnforseenMappingMessage(
             "given argument for resolving map type seems to be not parametrized",
             MapMapper.class.getName(),
             "getInnerType",

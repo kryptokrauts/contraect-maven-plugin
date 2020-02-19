@@ -4,7 +4,7 @@ import com.google.common.collect.ImmutableMap;
 import com.kryptokrauts.aeternity.sdk.exception.InvalidParameterException;
 import com.kryptokrauts.aeternity.sdk.util.EncodingUtils;
 import com.kryptokrauts.codegen.datatypes.DatatypeMappingHandler;
-import com.kryptokrauts.codegen.maven.ABIJsonDescriptionConfiguration;
+import com.kryptokrauts.codegen.maven.ABIJsonConfiguration;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
@@ -36,6 +36,8 @@ public class CustomTypesGenerator {
 
   private static final String ADDRESS_TYPE = "address";
 
+  private static final String RECORD = "record";
+
   // the default parameter name
   public static final String MP_PARAM = "p";
 
@@ -45,39 +47,35 @@ public class CustomTypesGenerator {
   // the mapToReturnValue method name
   public static final String M_MAP_TO_RETURN_VALUE = "mapToReturnValue";
 
-  // add the default address datatype
-  public static final JsonObject ADDRESS_DATATYPE =
-      new JsonObject()
-          .put("name", ADDRESS_TYPE)
-          .put(
-              "typedef",
-              new JsonObject()
-                  .put(
-                      "record",
-                      new JsonArray()
-                          .add(new JsonObject().put("name", ADDRESS_TYPE).put("type", "string"))));
+  @NonNull private DatatypeMappingHandler datatypeEncodingHandler;
 
-  @NonNull DatatypeMappingHandler datatypeEncodingHandler;
-
-  @NonNull ABIJsonDescriptionConfiguration abiJsonDescriptionConfiguration;
+  @NonNull private ABIJsonConfiguration abiJsonConfiguration;
 
   /** @TODO check if record before -> if not, don't create type */
   public List<TypeSpec> generateCustomTypes(JsonArray customTypes, Object state) {
-    customTypes.add(ADDRESS_DATATYPE);
+    customTypes.add(getAddressType());
     if (state != null) {
-      customTypes.add(new JsonObject().put("name", "state").put("typedef", state));
+      customTypes.add(
+          new JsonObject()
+              .put(
+                  abiJsonConfiguration.getCustomTypeNameElement(),
+                  abiJsonConfiguration.getStateElement())
+              .put(abiJsonConfiguration.getCustomTypeTypedefElement(), state));
     }
     return customTypes.stream()
         .map(typeDefinition -> generateCustomType(JsonObject.mapFrom(typeDefinition)))
         .collect(Collectors.toList());
   }
 
-  /** @TODO refactor json names */
   private TypeSpec generateCustomType(JsonObject typeDefinition) {
     List<Pair<String, TypeName>> fields = new LinkedList<>();
-    Object fieldDefinition = typeDefinition.getValue("typedef");
+    Object fieldDefinition =
+        typeDefinition.getValue(abiJsonConfiguration.getCustomTypeTypedefElement());
     if (fieldDefinition instanceof JsonObject) {
-      JsonArray record = typeDefinition.getJsonObject("typedef").getJsonArray("record");
+      JsonArray record =
+          typeDefinition
+              .getJsonObject(abiJsonConfiguration.getCustomTypeTypedefElement())
+              .getJsonArray(RECORD);
       // if record is defined, it is a custom type
       if (record != null) {
         fields =
@@ -85,10 +83,13 @@ public class CustomTypesGenerator {
                 .map(
                     definition -> {
                       JsonObject oneField = JsonObject.mapFrom(definition);
-                      String name = oneField.getString("name");
+                      String name =
+                          oneField.getString(
+                              abiJsonConfiguration.getCustomTypeTypedefNameElement());
                       TypeName type =
                           this.datatypeEncodingHandler.getTypeNameFromJSON(
-                              oneField.getValue("type"));
+                              oneField.getValue(
+                                  abiJsonConfiguration.getCustomTypeTypedefTypeElement()));
                       return Pair.with(name, type);
                     })
                 .collect(Collectors.toList());
@@ -97,9 +98,14 @@ public class CustomTypesGenerator {
       fields.add(Pair.with(fieldDefinition.toString(), TypeName.get(String.class)));
     } else {
       throw new RuntimeException(
-          "Unforseen case of custom type definition " + typeDefinition.encodePrettily());
+          CodegenUtil.getBaseErrorMessage(
+              CmpErrorCode.UNFORSEEN_CUSTOM_TYPEDEF,
+              "This is an unforseen custom type definition",
+              Arrays.asList(Pair.with("TypeDefinition", typeDefinition.encodePrettily()))));
     }
-    String name = CodegenUtil.getUppercaseClassName(typeDefinition.getString("name"));
+    String name =
+        CodegenUtil.getUppercaseClassName(
+            typeDefinition.getString(abiJsonConfiguration.getCustomTypeNameElement()));
 
     return TypeSpec.classBuilder(name)
         .addFields(buildFields(fields))
@@ -313,6 +319,26 @@ public class CustomTypesGenerator {
 
   private ParameterSpec getParameterSpec(String customTypeName) {
     return ParameterSpec.builder(this.getClassName(customTypeName), MP_PARAM).build();
+  }
+
+  // add the default address datatype
+  private JsonObject getAddressType() {
+    return new JsonObject()
+        .put(abiJsonConfiguration.getCustomTypeNameElement(), ADDRESS_TYPE)
+        .put(
+            abiJsonConfiguration.getCustomTypeTypedefElement(),
+            new JsonObject()
+                .put(
+                    RECORD,
+                    new JsonArray()
+                        .add(
+                            new JsonObject()
+                                .put(
+                                    abiJsonConfiguration.getCustomTypeTypedefNameElement(),
+                                    ADDRESS_TYPE)
+                                .put(
+                                    abiJsonConfiguration.getCustomTypeTypedefTypeElement(),
+                                    "string"))));
   }
 
   // class definition for default types

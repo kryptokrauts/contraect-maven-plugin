@@ -80,7 +80,7 @@ public class ListMapper extends AbstractDatatypeMapper {
       return ((ParameterizedTypeName) type).typeArguments.get(LIST_INNER_TYPE_POS);
     }
     throw new RuntimeException(
-        getUnsupportedMappingException(
+        getUnforseenMappingMessage(
             "given argument for resolving list type seems to be not parametrized",
             ListMapper.class.getName(),
             "getListInnerType",

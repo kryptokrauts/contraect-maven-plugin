@@ -17,7 +17,7 @@ import com.kryptokrauts.aeternity.sdk.service.transaction.domain.PostTransaction
 import com.kryptokrauts.aeternity.sdk.service.transaction.type.model.ContractCallTransactionModel;
 import com.kryptokrauts.aeternity.sdk.service.transaction.type.model.ContractCreateTransactionModel;
 import com.kryptokrauts.codegen.datatypes.DatatypeMappingHandler;
-import com.kryptokrauts.codegen.maven.ABIJsonDescriptionConfiguration;
+import com.kryptokrauts.codegen.maven.ABIJsonConfiguration;
 import com.kryptokrauts.codegen.maven.CodegenConfiguration;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
@@ -45,6 +45,7 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.io.IOUtils;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,7 +100,7 @@ public class ContraectGenerator {
 
   @NonNull private CodegenConfiguration codegenConfiguration;
 
-  @NonNull private ABIJsonDescriptionConfiguration abiJsonDescriptionConfiguration;
+  @NonNull private ABIJsonConfiguration abiJsonConfiguration;
 
   private DatatypeMappingHandler datatypeEncodingHandler;
 
@@ -116,9 +117,12 @@ public class ContraectGenerator {
       this.generateContractClass(this.checkABI(abiContent.getEncodedAci()), aesContent);
     } else {
       throw new MojoExecutionException(
-          String.format(
-              "Cannot create ABI for contract code generation %s: %s\n%s",
-              aesFile, abiContent.getAeAPIErrorMessage(), abiContent.getRootErrorMessage()));
+          CodegenUtil.getBaseErrorMessage(
+              CmpErrorCode.FAIL_PARSE_ROOT,
+              String.format("Compiler failed to create ABI for contract %s", aesFile),
+              Arrays.asList(
+                  Pair.with("AeAPIErrorMessage", abiContent.getAeAPIErrorMessage()),
+                  Pair.with("RootErrorMessage", abiContent.getRootErrorMessage()))));
     }
   }
 
@@ -131,14 +135,16 @@ public class ContraectGenerator {
    */
   private JsonObject checkABI(Object abiContent) throws MojoExecutionException {
     return Optional.ofNullable(
-            JsonObject.mapFrom(abiContent)
-                .getJsonObject(abiJsonDescriptionConfiguration.getAbiJSONRootElement()))
+            JsonObject.mapFrom(abiContent).getJsonObject(abiJsonConfiguration.getRootElement()))
         .orElseThrow(
             () ->
                 new MojoExecutionException(
-                    String.format(
-                        "Invalid json or configuration - cannot parse root element %s from json %s",
-                        abiJsonDescriptionConfiguration.getAbiJSONRootElement(), abiContent)));
+                    CodegenUtil.getBaseErrorMessage(
+                        CmpErrorCode.FAIL_CREATE_ABI,
+                        String.format(
+                            "Invalid json or configuration - cannot parse root element %s",
+                            abiJsonConfiguration.getRootElement()),
+                        Arrays.asList(Pair.with("abiContent", abiContent)))));
   }
 
   /**
@@ -152,13 +158,12 @@ public class ContraectGenerator {
     try {
       String className =
           CodegenUtil.getUppercaseClassName(
-              abiJson.getString(abiJsonDescriptionConfiguration.getAbiJSONNameElement()));
+              abiJson.getString(abiJsonConfiguration.getContractNameElement()));
 
       this.datatypeEncodingHandler =
           new DatatypeMappingHandler(codegenConfiguration.getTargetPackage(), className);
       this.customTypesGenerator =
-          new CustomTypesGenerator(
-              this.datatypeEncodingHandler, this.abiJsonDescriptionConfiguration);
+          new CustomTypesGenerator(this.datatypeEncodingHandler, this.abiJsonConfiguration);
 
       TypeSpec contractTypeSpec =
           TypeSpec.classBuilder(className)
@@ -175,7 +180,7 @@ public class ContraectGenerator {
                       .initializer(
                           "$T.getLogger($L)",
                           LoggerFactory.class,
-                          abiJson.getString(abiJsonDescriptionConfiguration.getAbiJSONNameElement())
+                          abiJson.getString(abiJsonConfiguration.getContractNameElement())
                               + ".class")
                       .build())
               .addField(
@@ -184,9 +189,8 @@ public class ContraectGenerator {
                       .build())
               .addTypes(
                   this.customTypesGenerator.generateCustomTypes(
-                      abiJson.getJsonArray(
-                          abiJsonDescriptionConfiguration.getAbiJSONTypesElement()),
-                      abiJson.getValue("state")))
+                      abiJson.getJsonArray(abiJsonConfiguration.getCustomTypeElement()),
+                      abiJson.getValue(abiJsonConfiguration.getStateElement())))
               .addMethods(buildContractPrivateMethods())
               .addMethod(buildConstructor())
               .addMethods(this.buildContractMethods(abiJson))
@@ -205,9 +209,12 @@ public class ContraectGenerator {
       javaFile.writeTo(path);
     } catch (Exception e) {
       throw new MojoExecutionException(
-          "Error generating contract "
-              + abiJson.getString(abiJsonDescriptionConfiguration.getAbiJSONNameElement()),
-          e);
+          CodegenUtil.getBaseErrorMessage(
+              CmpErrorCode.FAIL_GENERATE_CONTRACT,
+              String.format(
+                  "Error generating contract %s",
+                  abiJson.getString(abiJsonConfiguration.getContractNameElement())),
+              Arrays.asList(Pair.with("Exception", e))));
     }
   }
 
@@ -250,10 +257,8 @@ public class ContraectGenerator {
   /** iterate over method declarations and create method spec */
   private List<MethodSpec> buildContractMethods(JsonObject abi) {
     List<MethodSpec> methods = new LinkedList<MethodSpec>();
-    if (abi != null
-        && abi.getValue(abiJsonDescriptionConfiguration.getAbiJSONFunctionsElement()) != null) {
-      JsonArray functions =
-          abi.getJsonArray(abiJsonDescriptionConfiguration.getAbiJSONFunctionsElement());
+    if (abi != null && abi.getValue(abiJsonConfiguration.getFunctionsElement()) != null) {
+      JsonArray functions = abi.getJsonArray(abiJsonConfiguration.getFunctionsElement());
       for (Object methodDescription : functions.getList()) {
         methods.add(this.parseFunctionToMethodSpec(JsonObject.mapFrom(methodDescription)));
       }
@@ -281,10 +286,9 @@ public class ContraectGenerator {
 
     String functionName =
         replaceInvalidChars(
-            functionDescription.getString(
-                abiJsonDescriptionConfiguration.getAbiJSONFunctionsNameElement()));
+            functionDescription.getString(abiJsonConfiguration.getFunctionNameElement()));
 
-    if (abiJsonDescriptionConfiguration.getInitFunctionName().equalsIgnoreCase(functionName)) {
+    if (codegenConfiguration.getInitFunctionName().equalsIgnoreCase(functionName)) {
       return buildDeployMethod(functionDescription);
     }
 
@@ -294,8 +298,8 @@ public class ContraectGenerator {
     boolean isPayable = false;
     ParameterSpec amount = null;
 
-    if (functionDescription.containsKey("payable")) {
-      if (functionDescription.getBoolean("payable")) {
+    if (functionDescription.containsKey(abiJsonConfiguration.getPayableElement())) {
+      if (functionDescription.getBoolean(abiJsonConfiguration.getPayableElement())) {
         isPayable = true;
         amount = ParameterSpec.builder(TypeName.get(BigInteger.class), VAR_CC_AMOUNT).build();
       }
@@ -304,8 +308,7 @@ public class ContraectGenerator {
     // resolve the return type
     TypeName resultType =
         this.datatypeEncodingHandler.getTypeNameFromJSON(
-            functionDescription.getValue(
-                abiJsonDescriptionConfiguration.getAbiJSONFunctionsReturnTypeElement()));
+            functionDescription.getValue(abiJsonConfiguration.getFunctionReturnTypeElement()));
     boolean isVoid = TypeName.get(Void.class).equals(resultType);
 
     CodeBlock returnCodeBlock = CodeBlock.builder().build();
@@ -351,8 +354,7 @@ public class ContraectGenerator {
             .build();
 
     Boolean stateful =
-        functionDescription.getBoolean(
-            abiJsonDescriptionConfiguration.getAbiJSONFunctionStatefulElement());
+        functionDescription.getBoolean(abiJsonConfiguration.getFunctionStatefulElement());
 
     /** stateful call - add gas and gasPrice to transaction and post */
     if (stateful) {
@@ -446,16 +448,6 @@ public class ContraectGenerator {
     return CodeBlock.builder()
         .addStatement(
             "$T $L = $L.getResult()", Object.class, VAR_UNWRAPPED_RESULT_OBJECT, VAR_RESULT_OBJECT)
-        // if (unwrappedResultObject instanceof Map) {
-        // JsonObject result =
-        // JsonObject.mapFrom(unwrappedResultObject);
-        // if (result.containsKey("abort")) {
-        // String errorMessage = String.format(
-        // "An error occured calling function %s: %s",
-        // "getReward", result.getValue("abort"));
-        // throw new AException(errorMessage);
-        // }
-        // }
         .beginControlFlow("if($L instanceof $T)", VAR_UNWRAPPED_RESULT_OBJECT, Map.class)
         .addStatement(
             "$T $L = $T.mapFrom($L)",
@@ -464,9 +456,7 @@ public class ContraectGenerator {
             JsonObject.class,
             VAR_UNWRAPPED_RESULT_OBJECT)
         .beginControlFlow(
-            "if($L.containsKey($S))",
-            VAR_RESULT_JSON_MAP,
-            abiJsonDescriptionConfiguration.getResultAbortKey())
+            "if($L.containsKey($S))", VAR_RESULT_JSON_MAP, abiJsonConfiguration.getResultAbortKey())
         .addStatement(
             "throw new $T($T.format($S,$S,$L.getValue($S)))",
             AException.class,
@@ -474,7 +464,7 @@ public class ContraectGenerator {
             "An error occured calling function %s: %s",
             functionName,
             VAR_RESULT_JSON_MAP,
-            abiJsonDescriptionConfiguration.getResultAbortKey())
+            abiJsonConfiguration.getResultAbortKey())
         .endControlFlow()
         .endControlFlow()
         .add(this.mapReturnTypeFromCall(resultType, VAR_UNWRAPPED_RESULT_OBJECT))
@@ -490,8 +480,7 @@ public class ContraectGenerator {
 
   private List<ParameterSpec> getParameterSpecFromSignature(JsonObject functionDescription) {
     List<ParameterSpec> params =
-        functionDescription
-            .getJsonArray(abiJsonDescriptionConfiguration.getAbiJSONFunctionArgumentElement())
+        functionDescription.getJsonArray(abiJsonConfiguration.getFunctionArgumentsElement())
             .stream()
             .map(
                 param -> {
@@ -499,12 +488,10 @@ public class ContraectGenerator {
                   return ParameterSpec.builder(
                           this.datatypeEncodingHandler.getTypeNameFromJSON(
                               paramMap.getValue(
-                                  abiJsonDescriptionConfiguration
-                                      .getAbiJSONFunctionArgumentTypeElement())),
+                                  abiJsonConfiguration.getFunctionArgumentTypeElement())),
                           replaceInvalidChars(
                               paramMap.getString(
-                                  abiJsonDescriptionConfiguration
-                                      .getAbiJSONFunctionArgumentNameElement())))
+                                  abiJsonConfiguration.getFunctionArgumentNameElement())))
                       .build();
                 })
             .collect(Collectors.toList());
@@ -528,7 +515,7 @@ public class ContraectGenerator {
                 String.class,
                 VAR_CALLDATA,
                 GCPM_CALLDATA_FOR_FCT,
-                abiJsonDescriptionConfiguration.getInitFunctionName(),
+                codegenConfiguration.getInitFunctionName(),
                 LinkedList.class)
             .build();
     if (functionDescription != null) {
@@ -546,7 +533,7 @@ public class ContraectGenerator {
                   String.class,
                   VAR_CALLDATA,
                   GCPM_CALLDATA_FOR_FCT,
-                  abiJsonDescriptionConfiguration.getInitFunctionName(),
+                  codegenConfiguration.getInitFunctionName(),
                   VAR_ENCODED_PARAM_LIST)
               .build();
     }
@@ -996,7 +983,10 @@ public class ContraectGenerator {
       return IOUtils.toString(Paths.get("", filePath).toUri(), StandardCharsets.UTF_8.toString());
     } catch (IOException e) {
       throw new MojoExecutionException(
-          String.format("Cannot read contract from file %s", filePath), e);
+          CodegenUtil.getBaseErrorMessage(
+              CmpErrorCode.FAIL_READ_CONTRACT_FILE,
+              String.format("Cannot read contract from file %s", filePath),
+              Arrays.asList(Pair.with("Exception", e))));
     }
   }
 

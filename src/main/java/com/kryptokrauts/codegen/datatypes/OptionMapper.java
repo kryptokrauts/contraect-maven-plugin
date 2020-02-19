@@ -47,24 +47,6 @@ public class OptionMapper extends AbstractDatatypeMapper {
 
   @Override
   public CodeBlock mapToReturnValue(TypeName type, String variableName) {
-    // (unwrappedResultObject instanceof Map)
-    // ? Optional.of(new BigInteger(JsonObject
-    // .mapFrom(unwrappedResultObject).getJsonArray("Some")
-    // .getValue(0).toString()))
-    // : Optional.empty();
-    // CodeBlock getJsonArrayValue = CodeBlock.builder()
-    // .add("$T.mapFrom($L).getJsonArray($S).getValue(0)",
-    // JsonObject.class, variableName, HAS_VALUE_STRING)
-    // .build();
-
-    // CodeBlock getJsonArrayValue = CodeBlock.builder()
-    // .add("((($T)$L).get($S))", Map.class, variableName,
-    // HAS_VALUE_STRING)
-    // .build();
-
-    // ((List<?>) (((List<?>) (((java.util.Map) unwrappedResultObject)
-    // .get("Some"))).get(0))
-
     CodeBlock getJsonArrayValue =
         CodeBlock.builder()
             .add(
@@ -99,7 +81,7 @@ public class OptionMapper extends AbstractDatatypeMapper {
       return ((ParameterizedTypeName) type).typeArguments.get(0);
     }
     throw new RuntimeException(
-        getUnsupportedMappingException(
+        getUnforseenMappingMessage(
             "given argument for resolving option type seems to be not parametrized",
             OptionMapper.class.getName(),
             "getOptionInnerType",

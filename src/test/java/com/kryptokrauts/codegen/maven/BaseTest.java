@@ -19,7 +19,7 @@ public abstract class BaseTest {
 
   protected static CodegenConfiguration config;
 
-  protected static ABIJsonDescriptionConfiguration abiJsonDescription;
+  protected static ABIJsonConfiguration abiJsonDescription;
 
   protected static final String AETERNITY_BASE_URL = "AETERNITY_BASE_URL";
 
@@ -33,7 +33,7 @@ public abstract class BaseTest {
 
   @BeforeAll
   public static void initConfig() throws MojoExecutionException {
-    abiJsonDescription = new ABIJsonDescriptionConfiguration();
+    abiJsonDescription = new ABIJsonConfiguration();
     config = new CodegenConfiguration();
     config.setCompilerBaseUrl(getCompilerBaseUrl());
     config.setTargetPath(targetPath);
