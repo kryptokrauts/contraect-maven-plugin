@@ -19,6 +19,7 @@ import com.kryptokrauts.aeternity.sdk.service.transaction.type.model.ContractCre
 import com.kryptokrauts.codegen.datatypes.DatatypeMappingHandler;
 import com.kryptokrauts.codegen.maven.ABIJsonConfiguration;
 import com.kryptokrauts.codegen.maven.CodegenConfiguration;
+import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.JavaFile;
@@ -34,7 +35,9 @@ import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -194,6 +197,9 @@ public class ContraectGenerator {
               .addMethods(buildContractPrivateMethods())
               .addMethod(buildConstructor())
               .addMethods(this.buildContractMethods(abiJson))
+              .addJavadoc(GENERATED)
+              .addJavadoc(SUPPORT)
+              .addJavadoc(KRYPTOKRAUTS)
               .build();
 
       /** add default deploy method if no explicit method defined in contract */
@@ -295,6 +301,8 @@ public class ContraectGenerator {
     // resolve list of method parameters
     List<ParameterSpec> params = getParameterSpecFromSignature(functionDescription);
 
+    boolean isStateful =
+        functionDescription.getBoolean(abiJsonConfiguration.getFunctionStatefulElement());
     boolean isPayable = false;
     ParameterSpec amount = null;
 
@@ -306,16 +314,31 @@ public class ContraectGenerator {
     }
 
     // resolve the return type
-    TypeName resultType =
+    TypeName payloadType =
         this.datatypeEncodingHandler.getTypeNameFromJSON(
             functionDescription.getValue(abiJsonConfiguration.getFunctionReturnTypeElement()));
-    boolean isVoid = TypeName.get(Void.class).equals(resultType);
+    boolean isVoid = TypeName.get(Void.class).equals(payloadType.box());
 
-    CodeBlock returnCodeBlock = CodeBlock.builder().build();
+    TypeName returnType = payloadType;
 
-    if (!isVoid) {
-      returnCodeBlock = mapResultCodeblock(VAR_RESULT_OBJECT, resultType, functionName);
+    if (isStateful) {
+      if (isVoid) {
+        returnType = ClassName.get(String.class);
+      } else {
+        returnType =
+            ParameterizedTypeName.get(
+                ClassName.get(Pair.class), TypeName.get(String.class), payloadType);
+      }
     }
+
+    CodeBlock returnCodeBlock =
+        mapResultCodeblock(
+            VAR_RESULT_OBJECT,
+            VAR_CC_POST_TX_RESULT,
+            payloadType,
+            functionName,
+            isStateful,
+            isVoid);
 
     // the logic block
     CodeBlock codeBlock =
@@ -353,11 +376,8 @@ public class ContraectGenerator {
             .beginControlFlow("if($S.equalsIgnoreCase($L.getResult()))", "ok", VAR_DR_RESULT)
             .build();
 
-    Boolean stateful =
-        functionDescription.getBoolean(abiJsonConfiguration.getFunctionStatefulElement());
-
     /** stateful call - add gas and gasPrice to transaction and post */
-    if (stateful) {
+    if (isStateful) {
       codeBlock =
           codeBlock
               .toBuilder()
@@ -428,8 +448,8 @@ public class ContraectGenerator {
         MethodSpec.methodBuilder(functionName)
             .addParameters(params)
             .addCode(codeBlock)
-            .addJavadoc(stateful ? "Stateful function" : "")
-            .returns(resultType)
+            .addJavadoc(isStateful ? "Stateful function" : "")
+            .returns(returnType)
             .addJavadoc("")
             .addModifiers(Modifier.PUBLIC)
             .build();
@@ -442,9 +462,35 @@ public class ContraectGenerator {
   }
 
   private CodeBlock mapResultCodeblock(
-      String VAR_RESULT_OBJECT, TypeName resultType, String functionName) {
+      String VAR_RESULT_OBJECT,
+      String VAR_POST_TX_RESULT,
+      TypeName resultType,
+      String functionName,
+      boolean isStateful,
+      boolean isVoid) {
     String VAR_UNWRAPPED_RESULT_OBJECT = "unwrappedResultObject";
     String VAR_RESULT_JSON_MAP = "resultJSONMap";
+
+    CodeBlock mappedToReturnValue =
+        this.datatypeEncodingHandler.mapToReturnValue(resultType, VAR_RESULT_OBJECT);
+
+    CodeBlock returnStatement =
+        CodeBlock.builder().addStatement("return $L", mappedToReturnValue).build();
+
+    if (isStateful) {
+      if (isVoid) {
+        returnStatement =
+            CodeBlock.builder().addStatement("return $L.getTxHash()", VAR_POST_TX_RESULT).build();
+      } else {
+        returnStatement =
+            CodeBlock.builder()
+                .add("return $T.with($L.getTxHash(),", Pair.class, VAR_POST_TX_RESULT)
+                .add(mappedToReturnValue)
+                .add(");")
+                .build();
+      }
+    }
+
     return CodeBlock.builder()
         .addStatement(
             "$T $L = $L.getResult()", Object.class, VAR_UNWRAPPED_RESULT_OBJECT, VAR_RESULT_OBJECT)
@@ -456,7 +502,7 @@ public class ContraectGenerator {
             JsonObject.class,
             VAR_UNWRAPPED_RESULT_OBJECT)
         .beginControlFlow(
-            "if($L.containsKey($S))", VAR_RESULT_JSON_MAP, abiJsonConfiguration.getResultAbortKey())
+            "if($L.containsKey($S))", VAR_RESULT_JSON_MAP, codegenConfiguration.getResultAbortKey())
         .addStatement(
             "throw new $T($T.format($S,$S,$L.getValue($S)))",
             AException.class,
@@ -464,10 +510,10 @@ public class ContraectGenerator {
             "An error occured calling function %s: %s",
             functionName,
             VAR_RESULT_JSON_MAP,
-            abiJsonConfiguration.getResultAbortKey())
+            codegenConfiguration.getResultAbortKey())
         .endControlFlow()
         .endControlFlow()
-        .add(this.mapReturnTypeFromCall(resultType, VAR_UNWRAPPED_RESULT_OBJECT))
+        .add(returnStatement)
         .build();
   }
 
@@ -990,18 +1036,21 @@ public class ContraectGenerator {
     }
   }
 
-  /**
-   * get the return statement which intializes the resultType with the value
-   *
-   * @param classType
-   * @param result
-   * @return
-   */
-  private CodeBlock mapReturnTypeFromCall(TypeName resultType, String returnValueVariable) {
-    return CodeBlock.builder()
-        .addStatement(
-            "return $L",
-            this.datatypeEncodingHandler.mapToReturnValue(resultType, returnValueVariable))
-        .build();
-  }
+  private String GENERATED =
+      String.format(
+          "This contract class was generated by contraect-maven-plugin on %s\r\nThe documentation of the project can be found here\r\nhttps://kryptokrauts.gitbook.io/contraect-maven-plugin\r\n\r\n",
+          new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()));
+
+  private String SUPPORT =
+      "If you like this project we would appreciate your support.\r\nYou can find multiple ways to support us here\r\nhttps://kryptokrauts.com/support\r\n";
+
+  private String KRYPTOKRAUTS =
+      " _                         _          _                        _        \r\n"
+          + "| |                       | |        | |                      | |       \r\n"
+          + "| | __ _ __  _   _  _ __  | |_  ___  | | __ _ __  __ _  _   _ | |_  ___ \r\n"
+          + "| |/ /| '__|| | | || '_ \\ | __|/ _ \\ | |/ /| '__|/ _` || | | || __|/ __|\r\n"
+          + "|   < | |   | |_| || |_) || |_| (_) ||   < | |  | (_| || |_| || |_ \\__ \\\r\n"
+          + "|_|\\_\\|_|    \\__, || .__/  \\__|\\___/ |_|\\_\\|_|   \\__,_| \\__,_| \\__||___/\r\n"
+          + "              __/ || |                                                  \r\n"
+          + "             |___/ |_|        \r\n";
 }

@@ -77,7 +77,4 @@ public class ABIJsonConfiguration {
 
   /** name of the json element identifying a fields type within a custom type */
   private String customTypeTypedefTypeElement = "type";
-
-  /** indicates an abort of a function call */
-  private String resultAbortKey = "abort";
 }

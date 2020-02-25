@@ -41,6 +41,9 @@ public class CodegenConfiguration {
   /** file suffix identifying contract code files */
   private String contractSuffix = "aes";
 
+  /** indicates an abort of a function call */
+  private String resultAbortKey = "abort";
+
   public AeternityService getAeternityService() {
     if (aeternityService == null) {
       VertxOptions options = new VertxOptions();
