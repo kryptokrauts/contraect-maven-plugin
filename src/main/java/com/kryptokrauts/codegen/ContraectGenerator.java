@@ -592,7 +592,11 @@ public class ContraectGenerator {
                     .addStatement("return this.$N($L)", GCPM_DEPLOY_CONTRACT, VAR_CALLDATA)
                     .build())
             .addParameters(parameters)
-            .returns(String.class)
+            .returns(
+                ParameterizedTypeName.get(
+                    ClassName.get(Pair.class),
+                    TypeName.get(String.class),
+                    TypeName.get(String.class)))
             .addModifiers(Modifier.PUBLIC)
             .build();
 
@@ -714,9 +718,17 @@ public class ContraectGenerator {
                         "this.$L = $L.getCallInfo().getContractId()",
                         GCV_DEPLOYED_CONTRACT_ID,
                         VAR_CC_POST_TX_INFO)
-                    .addStatement("return $L.getCallInfo().getContractId()", VAR_CC_POST_TX_INFO)
+                    .addStatement(
+                        "return $T.with($L.getTxHash(),$L.getCallInfo().getContractId())",
+                        Pair.class,
+                        VAR_CC_POST_TX_RESULT,
+                        VAR_CC_POST_TX_INFO)
                     .build())
-            .returns(String.class)
+            .returns(
+                ParameterizedTypeName.get(
+                    ClassName.get(Pair.class),
+                    TypeName.get(String.class),
+                    TypeName.get(String.class)))
             .addModifiers(Modifier.PRIVATE)
             .build();
     return GCPM_DEPLOY_CONTRACT;
