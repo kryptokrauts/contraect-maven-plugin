@@ -117,7 +117,10 @@ public class ContraectGenerator {
             .compiler
             .blockingGenerateACI(aesContent, null, null);
     if (abiContent.getEncodedAci() != null) {
-      this.generateContractClass(this.checkABI(abiContent.getEncodedAci()), aesContent);
+      JsonObject parsedAbi = this.checkABI(abiContent.getEncodedAci());
+      if (parsedAbi != null) {
+        this.generateContractClass(parsedAbi, aesContent);
+      }
     } else {
       throw new MojoExecutionException(
           CodegenUtil.getBaseErrorMessage(
@@ -137,17 +140,33 @@ public class ContraectGenerator {
    * @throws MojoExecutionException
    */
   private JsonObject checkABI(Object abiContent) throws MojoExecutionException {
-    return Optional.ofNullable(
-            JsonObject.mapFrom(abiContent).getJsonObject(abiJsonConfiguration.getRootElement()))
-        .orElseThrow(
-            () ->
-                new MojoExecutionException(
-                    CodegenUtil.getBaseErrorMessage(
-                        CmpErrorCode.FAIL_CREATE_ABI,
-                        String.format(
-                            "Invalid json or configuration - cannot parse root element %s",
-                            abiJsonConfiguration.getRootElement()),
-                        Arrays.asList(Pair.with("abiContent", abiContent)))));
+    try {
+      // just check if contract
+      JsonObject mappedAbi = JsonObject.mapFrom(abiContent);
+      if (mappedAbi.containsKey(abiJsonConfiguration.getRootElement())) {
+        return mappedAbi.getJsonObject(abiJsonConfiguration.getRootElement());
+      }
+    } catch (Exception e) {
+      throw new MojoExecutionException(
+          CodegenUtil.getBaseErrorMessage(
+              CmpErrorCode.FAIL_CREATE_ABI,
+              String.format(
+                  "Invalid json or configuration - cannot parse root element %s",
+                  abiJsonConfiguration.getRootElement()),
+              Arrays.asList(Pair.with("abiContent", abiContent))));
+    }
+    // ignore library
+    return null;
+    // return Optional
+    // .ofNullable(JsonObject.mapFrom(abiContent)
+    // .getJsonObject(abiJsonConfiguration.getRootElement()))
+    // .orElseThrow(() -> new MojoExecutionException(CodegenUtil
+    // .getBaseErrorMessage(CmpErrorCode.FAIL_CREATE_ABI,
+    // String.format(
+    // "Invalid json or configuration - cannot parse root element %s",
+    // abiJsonConfiguration.getRootElement()),
+    // Arrays.asList(
+    // Pair.with("abiContent", abiContent)))));
   }
 
   /**
@@ -474,7 +493,7 @@ public class ContraectGenerator {
     String VAR_RESULT_JSON_MAP = "resultJSONMap";
 
     CodeBlock mappedToReturnValue =
-        this.datatypeEncodingHandler.mapToReturnValue(resultType, VAR_RESULT_OBJECT);
+        this.datatypeEncodingHandler.mapToReturnValue(resultType, VAR_UNWRAPPED_RESULT_OBJECT);
 
     CodeBlock returnStatement =
         CodeBlock.builder().addStatement("return $L", mappedToReturnValue).build();
@@ -1056,7 +1075,7 @@ public class ContraectGenerator {
           new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()));
 
   private String SUPPORT =
-      "If you like this project we would appreciate your support.\r\nYou can find multiple ways to support us here\r\nhttps://kryptokrauts.com/support\r\n";
+      "If you like this project we would appreciate your support.\r\nYou can find multiple ways to support us here\r\nhttps://kryptokrauts.com/support";
 
   private String KRYPTOKRAUTS =
       " _                     _        _                    _                            \r\n"
