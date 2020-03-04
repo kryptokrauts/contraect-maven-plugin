@@ -116,6 +116,11 @@ public class ContraectGenerator {
             .getAeternityService()
             .compiler
             .blockingGenerateACI(aesContent, null, null);
+    // ImmutableMap.of(
+    // "Library.aes",
+    // "namespace Library =\r\n"
+    // + " type number = int\r\n"
+    // + " function inc(x : number) : number = x + 1"));
     if (abiContent.getEncodedAci() != null) {
       JsonObject parsedAbi = this.checkABI(abiContent.getEncodedAci());
       if (parsedAbi != null) {
@@ -157,16 +162,6 @@ public class ContraectGenerator {
     }
     // ignore library
     return null;
-    // return Optional
-    // .ofNullable(JsonObject.mapFrom(abiContent)
-    // .getJsonObject(abiJsonConfiguration.getRootElement()))
-    // .orElseThrow(() -> new MojoExecutionException(CodegenUtil
-    // .getBaseErrorMessage(CmpErrorCode.FAIL_CREATE_ABI,
-    // String.format(
-    // "Invalid json or configuration - cannot parse root element %s",
-    // abiJsonConfiguration.getRootElement()),
-    // Arrays.asList(
-    // Pair.with("abiContent", abiContent)))));
   }
 
   /**
@@ -186,6 +181,8 @@ public class ContraectGenerator {
           new DatatypeMappingHandler(codegenConfiguration.getTargetPackage(), className);
       this.customTypesGenerator =
           new CustomTypesGenerator(this.datatypeEncodingHandler, this.abiJsonConfiguration);
+
+      this.datatypeEncodingHandler.setCustomTypesGenerator(this.customTypesGenerator);
 
       TypeSpec contractTypeSpec =
           TypeSpec.classBuilder(className)
@@ -209,13 +206,13 @@ public class ContraectGenerator {
                   FieldSpec.builder(int.class, GCV_NUM_TRIALS, Modifier.PRIVATE)
                       .initializer("$L", codegenConfiguration.getNumTrials())
                       .build())
+              .addMethods(buildContractPrivateMethods())
+              .addMethod(buildConstructor())
+              .addMethods(this.buildContractMethods(abiJson))
               .addTypes(
                   this.customTypesGenerator.generateCustomTypes(
                       abiJson.getJsonArray(abiJsonConfiguration.getCustomTypeElement()),
                       abiJson.getValue(abiJsonConfiguration.getStateElement())))
-              .addMethods(buildContractPrivateMethods())
-              .addMethod(buildConstructor())
-              .addMethods(this.buildContractMethods(abiJson))
               .addJavadoc(LICENSE_HEADER)
               .addJavadoc(KRYPTOKRAUTS)
               .addJavadoc(LICENSE)

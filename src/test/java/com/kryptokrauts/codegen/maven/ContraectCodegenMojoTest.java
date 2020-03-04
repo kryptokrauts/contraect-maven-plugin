@@ -11,9 +11,7 @@ public class ContraectCodegenMojoTest extends BaseTest {
   public void testCompileContraects() throws MojoExecutionException {
 
     ContraectGenerator generator = new ContraectGenerator(config, abiJsonDescription);
-    // generator.generate(
-    // new File("src/test/resources/contraects/SophiaTypes.aes")
-    // .getAbsolutePath());
+    generator.generate(new File("src/test/resources/contraects/SophiaTypes.aes").getAbsolutePath());
     generator.generate(
         new File("src/test/resources/contraects/CryptoHamster.aes").getAbsolutePath());
   }

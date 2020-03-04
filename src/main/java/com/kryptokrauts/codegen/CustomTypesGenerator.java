@@ -1,9 +1,11 @@
 package com.kryptokrauts.codegen;
 
 import com.google.common.collect.ImmutableMap;
-import com.kryptokrauts.aeternity.sdk.exception.InvalidParameterException;
-import com.kryptokrauts.aeternity.sdk.util.EncodingUtils;
 import com.kryptokrauts.codegen.datatypes.DatatypeMappingHandler;
+import com.kryptokrauts.codegen.datatypes.defaults.AddressType;
+import com.kryptokrauts.codegen.datatypes.defaults.BytesType;
+import com.kryptokrauts.codegen.datatypes.defaults.CustomType;
+import com.kryptokrauts.codegen.datatypes.defaults.HashType;
 import com.kryptokrauts.codegen.maven.ABIJsonConfiguration;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
@@ -15,6 +17,7 @@ import com.squareup.javapoet.TypeSpec;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -23,7 +26,6 @@ import javax.lang.model.element.Modifier;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.javatuples.Pair;
-import org.javatuples.Quartet;
 
 /**
  * this class generates type definition for custom types which are added as static subclasses to the
@@ -33,10 +35,6 @@ import org.javatuples.Quartet;
  */
 @RequiredArgsConstructor
 public class CustomTypesGenerator {
-
-  private static final String ADDRESS_TYPE = "address";
-
-  private static final String RECORD = "record";
 
   // the default parameter name
   public static final String MP_PARAM = "p";
@@ -51,9 +49,21 @@ public class CustomTypesGenerator {
 
   @NonNull private ABIJsonConfiguration abiJsonConfiguration;
 
-  /** @TODO check if record before -> if not, don't create type */
+  public static final Map<String, CustomType> PREDEFINED_TYPES =
+      ImmutableMap.of(
+          CustomType.ADDRESS_TYPE, new AddressType(), CustomType.HASH_TYPE, new HashType());
+
+  private Map<String, CustomType> INSTANCE_PREDEFINED_TYPES = new HashMap<>(PREDEFINED_TYPES);
+
+  public String addByteType(int length) {
+    String className = CustomType.BYTES_TYPE + length;
+    INSTANCE_PREDEFINED_TYPES.put(className, new BytesType(length, className));
+    return className;
+  }
+
   public List<TypeSpec> generateCustomTypes(JsonArray customTypes, Object state) {
-    customTypes.add(getAddressType());
+    INSTANCE_PREDEFINED_TYPES.forEach(
+        (name, customType) -> customTypes.add(customType.getTypeDefinition(abiJsonConfiguration)));
     if (state != null) {
       customTypes.add(
           new JsonObject()
@@ -75,7 +85,7 @@ public class CustomTypesGenerator {
       JsonArray record =
           typeDefinition
               .getJsonObject(abiJsonConfiguration.getCustomTypeTypedefElement())
-              .getJsonArray(RECORD);
+              .getJsonArray(CustomType.RECORD);
       // if record is defined, it is a custom type
       if (record != null) {
         fields =
@@ -107,8 +117,14 @@ public class CustomTypesGenerator {
         CodegenUtil.getUppercaseClassName(
             typeDefinition.getString(abiJsonConfiguration.getCustomTypeNameElement()));
 
+    List<FieldSpec> additionalFields = new LinkedList<>();
+    if (INSTANCE_PREDEFINED_TYPES.get(name.toLowerCase()) != null) {
+      additionalFields = INSTANCE_PREDEFINED_TYPES.get(name.toLowerCase()).fieldList();
+    }
+
     return TypeSpec.classBuilder(name)
         .addFields(buildFields(fields))
+        .addFields(additionalFields)
         .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
         .addMethods(generateCustomTypeConstructors(fields, name))
         .addMethods(generateCustomTypeGetters(fields))
@@ -138,8 +154,11 @@ public class CustomTypesGenerator {
             .add("}\"")
             .build();
     // if it is a predefined class use this encoding logic
-    if (PREDEFINED_TYPES.get(customTypeName.toLowerCase()) != null) {
-      encodeValueLogic = PREDEFINED_TYPES.get(customTypeName.toLowerCase()).getValue0();
+    if (INSTANCE_PREDEFINED_TYPES.get(customTypeName.toLowerCase()) != null) {
+      encodeValueLogic =
+          INSTANCE_PREDEFINED_TYPES
+              .get(customTypeName.toLowerCase())
+              .encodeValueCodeblock(MP_PARAM);
     }
 
     return MethodSpec.methodBuilder(M_ENCODE_VALUE)
@@ -162,8 +181,11 @@ public class CustomTypesGenerator {
                 this.getClassName(customTypeName))
             .build();
     // if it is a predefined class use this encoding logic
-    if (PREDEFINED_TYPES.get(customTypeName.toLowerCase()) != null) {
-      returnValueLogic = PREDEFINED_TYPES.get(customTypeName.toLowerCase()).getValue1();
+    if (INSTANCE_PREDEFINED_TYPES.get(customTypeName.toLowerCase()) != null) {
+      returnValueLogic =
+          INSTANCE_PREDEFINED_TYPES
+              .get(customTypeName.toLowerCase())
+              .mapToReturnValueCodeblock(MP_PARAM);
     }
 
     return MethodSpec.methodBuilder(M_MAP_TO_RETURN_VALUE)
@@ -191,8 +213,9 @@ public class CustomTypesGenerator {
             .build();
 
     // if it is a predefined class add constructor logic
-    if (PREDEFINED_TYPES.get(customTypeName.toLowerCase()) != null) {
-      valueConstructor = PREDEFINED_TYPES.get(customTypeName.toLowerCase()).getValue2();
+    if (INSTANCE_PREDEFINED_TYPES.get(customTypeName.toLowerCase()) != null) {
+      valueConstructor =
+          INSTANCE_PREDEFINED_TYPES.get(customTypeName.toLowerCase()).constructorMethod();
     }
     constructors.add(valueConstructor);
     // add default constructor if fields are defined
@@ -287,8 +310,8 @@ public class CustomTypesGenerator {
   private List<MethodSpec> generateCustomTypeSetters(
       List<Pair<String, TypeName>> fields, String customTypeName) {
 
-    if (PREDEFINED_TYPES.get(customTypeName.toLowerCase()) != null) {
-      return PREDEFINED_TYPES.get(customTypeName.toLowerCase()).getValue3();
+    if (INSTANCE_PREDEFINED_TYPES.get(customTypeName.toLowerCase()) != null) {
+      return INSTANCE_PREDEFINED_TYPES.get(customTypeName.toLowerCase()).methodList();
     }
 
     return fields.stream()
@@ -320,68 +343,4 @@ public class CustomTypesGenerator {
   private ParameterSpec getParameterSpec(String customTypeName) {
     return ParameterSpec.builder(this.getClassName(customTypeName), MP_PARAM).build();
   }
-
-  // add the default address datatype
-  private JsonObject getAddressType() {
-    return new JsonObject()
-        .put(abiJsonConfiguration.getCustomTypeNameElement(), ADDRESS_TYPE)
-        .put(
-            abiJsonConfiguration.getCustomTypeTypedefElement(),
-            new JsonObject()
-                .put(
-                    RECORD,
-                    new JsonArray()
-                        .add(
-                            new JsonObject()
-                                .put(
-                                    abiJsonConfiguration.getCustomTypeTypedefNameElement(),
-                                    ADDRESS_TYPE)
-                                .put(
-                                    abiJsonConfiguration.getCustomTypeTypedefTypeElement(),
-                                    "string"))));
-  }
-
-  // class definition for default types
-  // contains code for <param encoding, returnValue mapping, constructor,
-  // setters>
-  private static final CodeBlock ADDRESS_CHECK_CODEBLOCK =
-      CodeBlock.builder()
-          .beginControlFlow("if(!$T.isAddressValid($L))", EncodingUtils.class, ADDRESS_TYPE)
-          .addStatement(
-              "throw new $T($T.format($S,$L))",
-              InvalidParameterException.class,
-              String.class,
-              "Given address %s is not of type aeternity public key",
-              ADDRESS_TYPE)
-          .endControlFlow()
-          .addStatement("this.$L=$L", ADDRESS_TYPE, ADDRESS_TYPE)
-          .build();
-
-  public static final Map<String, Quartet<CodeBlock, CodeBlock, MethodSpec, List<MethodSpec>>>
-      PREDEFINED_TYPES =
-          ImmutableMap.of(
-              ADDRESS_TYPE,
-              Quartet.with(
-                  CodeBlock.builder()
-                      .add(
-                          "$L.get" + CodegenUtil.getUppercaseClassName(ADDRESS_TYPE) + "()",
-                          MP_PARAM)
-                      .build(),
-                  CodeBlock.builder()
-                      .add(
-                          "new $T($L.toString())",
-                          ClassName.get("", CodegenUtil.getUppercaseClassName(ADDRESS_TYPE)),
-                          MP_PARAM)
-                      .build(),
-                  MethodSpec.constructorBuilder()
-                      .addModifiers(Modifier.PUBLIC)
-                      .addParameter(ParameterSpec.builder(String.class, ADDRESS_TYPE).build())
-                      .addCode(ADDRESS_CHECK_CODEBLOCK)
-                      .build(),
-                  Arrays.asList(
-                      MethodSpec.methodBuilder("setAddress")
-                          .addModifiers(Modifier.PUBLIC)
-                          .addParameter(ParameterSpec.builder(String.class, ADDRESS_TYPE).build())
-                          .addCode(ADDRESS_CHECK_CODEBLOCK)
-                          .build())));
 }

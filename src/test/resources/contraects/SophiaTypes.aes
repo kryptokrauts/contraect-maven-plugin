@@ -16,6 +16,12 @@ contract SophiaTypes =
          firstname: string,
          lastname: string }
          
+    entrypoint testHash(hashValue: hash) : hash =
+        hashValue
+    
+    entrypoint testBytes(bytesValue: bytes(4)) : bytes(4) =
+        bytesValue
+    
     stateful payable entrypoint testPayableString(stringValue: string) : string =
         stringValue
     
@@ -49,9 +55,6 @@ contract SophiaTypes =
     entrypoint testBits(bitsValue: bits) : bits =
         bitsValue
 
-    entrypoint testBytes(bytesValue: bytes(64)) : bytes(64) =
-        bytesValue
-
     entrypoint testString(stringValue: string) : string =
         stringValue
         
@@ -78,9 +81,6 @@ contract SophiaTypes =
         
     entrypoint testOptionList(optionValue: option(list(int))) : option(list(int)) =
         optionValue
-
-    entrypoint testHash(hashValue: hash) : hash =
-        hashValue
 
     entrypoint testSignature(signatureValue: signature) : signature =
         signatureValue

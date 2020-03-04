@@ -5,6 +5,7 @@ import com.kryptokrauts.codegen.CustomTypesGenerator;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.TypeName;
+import io.vertx.core.json.JsonObject;
 
 public class CustomTypeMapper extends AbstractDatatypeMapper {
 
@@ -49,6 +50,20 @@ public class CustomTypeMapper extends AbstractDatatypeMapper {
                 .contains(type.toString().toLowerCase()))) {
       return CodegenUtil.getUppercaseClassName(
           type.toString().substring(type.toString().indexOf(".") + 1));
+    } else return tryResolveSpecialPredefinedCustomTypes(type);
+  }
+
+  private String tryResolveSpecialPredefinedCustomTypes(Object type) {
+    if (type != null && type.toString().contains("bytes")) {
+      try {
+        JsonObject json = JsonObject.mapFrom(type);
+        if (json.getValue("bytes") != null) {
+          return CodegenUtil.getUppercaseClassName(
+              this.resolveInstance.customTypesGenerator.addByteType(json.getInteger("bytes")));
+        }
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
     }
     return null;
   }

@@ -1,5 +1,6 @@
 package com.kryptokrauts.codegen.datatypes;
 
+import com.kryptokrauts.codegen.CustomTypesGenerator;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.TypeName;
 import java.util.Arrays;
@@ -16,6 +17,8 @@ public class DatatypeMappingHandler {
 
   private List<DatatypeMapper> datatypeHandlers;
 
+  protected CustomTypesGenerator customTypesGenerator;
+
   public DatatypeMappingHandler(
       String generatedTypesPackageName, String generatedContractClassName) {
     this.datatypeHandlers =
@@ -30,6 +33,10 @@ public class DatatypeMappingHandler {
             new BoolEncoder(this),
             new TupleMapper(this));
     this.generatedContractClassName = generatedContractClassName;
+  }
+
+  public void setCustomTypesGenerator(CustomTypesGenerator customTypesGenerator) {
+    this.customTypesGenerator = customTypesGenerator;
   }
 
   public CodeBlock encodeParameter(TypeName type, String variableName) {
