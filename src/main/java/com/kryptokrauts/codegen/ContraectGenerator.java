@@ -93,7 +93,7 @@ public class ContraectGenerator {
 
   private MethodSpec GCPM_WAIT_FOR_TX_INFO;
 
-  private MethodSpec GCPM_WAIT_FOR_TX_MINED;
+  private MethodSpec GCPM_WAIT_FOR_TX;
 
   private MethodSpec GCPM_DEPLOY_CONTRACT;
 
@@ -711,6 +711,17 @@ public class ContraectGenerator {
                         DryRunTransactionResult.class,
                         VAR_CC_DR_RESULT,
                         VAR_CC_DR_RESULTS)
+                    .beginControlFlow(
+                        "if($L.getContractCallObject().getReturnType().equals($S))",
+                        VAR_CC_DR_RESULT,
+                        this.codegenConfiguration.getResultRevertKey())
+                    .addStatement(
+                        "throw new $T($T.format($S,$L.getContractCallObject().getReturnValue()))",
+                        IllegalArgumentException.class,
+                        String.class,
+                        "Contract could not be deployed due to following exception %s",
+                        VAR_CC_DR_RESULT)
+                    .endControlFlow()
                     .addStatement(
                         "$L = $L.toBuilder()"
                             + ".gas($L.getContractCallObject().getGasUsed())"
@@ -760,7 +771,7 @@ public class ContraectGenerator {
             .addParameter(ParameterSpec.builder(String.class, MP_TXHASH).build())
             .addCode(
                 CodeBlock.builder()
-                    .addStatement("this.$N($L)", GCPM_WAIT_FOR_TX_MINED, MP_TXHASH)
+                    .addStatement("this.$N($L)", GCPM_WAIT_FOR_TX, MP_TXHASH)
                     .addStatement(
                         "return this.$L.info.blockingGetTransactionInfoByHash($L)",
                         GCV_AETERNITY_SERVICE,
@@ -779,7 +790,7 @@ public class ContraectGenerator {
     String VAR_MINED_TX = "minedTx";
     String VAR_DONE_TRIALS = "doneTrials";
 
-    this.GCPM_WAIT_FOR_TX_MINED =
+    this.GCPM_WAIT_FOR_TX =
         MethodSpec.methodBuilder("waitForTx")
             .addParameter(ParameterSpec.builder(String.class, MP_TXHASH).build())
             .addCode(
@@ -799,7 +810,10 @@ public class ContraectGenerator {
                         MP_TXHASH)
                     .beginControlFlow("if($L.getBlockHeight().intValue() > 1)", VAR_MINED_TX)
                     .addStatement(
-                        "$L.debug($S+$L)", GCV_LOGGER, "Mined transaction is: ", VAR_MINED_TX)
+                        "$L.debug($S+$L)",
+                        GCV_LOGGER,
+                        "Transaction included in block: ",
+                        VAR_MINED_TX)
                     .addStatement(
                         "$L = $L.getBlockHeight().intValue()", VAR_BLOCK_HEIGHT, VAR_MINED_TX)
                     .nextControlFlow("else")
@@ -807,7 +821,7 @@ public class ContraectGenerator {
                         "$L.info($T.format($S,$L,$L))",
                         GCV_LOGGER,
                         String.class,
-                        "Transaction not mined yet, trying again in 1 second (%s of %s)...",
+                        "Transaction not included in a block yet, trying again in 1 second (%s of %s)...",
                         VAR_DONE_TRIALS,
                         GCV_NUM_TRIALS)
                     .beginControlFlow("try")
@@ -817,7 +831,7 @@ public class ContraectGenerator {
                         "throw new $T($T.format($S,$L,$L))",
                         RuntimeException.class,
                         String.class,
-                        "Waiting for transaction %s to be mined was interrupted due to technical error: %s",
+                        "Waiting for transaction %s to be included in a block was interrupted due to technical error: %s",
                         MP_TXHASH,
                         "e.getMessage()")
                     .endControlFlow()
@@ -829,7 +843,7 @@ public class ContraectGenerator {
                         "throw new $T($T.format($S,$L,$L))",
                         RuntimeException.class,
                         String.class,
-                        "Transaction %s was not mined after %s trials, aborting",
+                        "Transaction %s was not included in a block after %s trials, aborting",
                         MP_TXHASH,
                         VAR_DONE_TRIALS)
                     .endControlFlow()
@@ -838,7 +852,7 @@ public class ContraectGenerator {
             .returns(TransactionResult.class)
             .addModifiers(Modifier.PRIVATE)
             .build();
-    return GCPM_WAIT_FOR_TX_MINED;
+    return GCPM_WAIT_FOR_TX;
   }
 
   private MethodSpec buildContractExistsMethod() {

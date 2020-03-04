@@ -44,6 +44,9 @@ public class CodegenConfiguration {
   /** indicates an abort of a function call */
   private String resultAbortKey = "abort";
 
+  /** indicates an revert of a contract deploy */
+  private String resultRevertKey = "revert";
+
   public AeternityService getAeternityService() {
     if (aeternityService == null) {
       VertxOptions options = new VertxOptions();
