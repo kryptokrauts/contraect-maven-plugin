@@ -1,6 +1,7 @@
 package com.kryptokrauts.codegen;
 
 public enum CmpErrorCode {
+  FAIL_IMPORT_INCLUDES("005"),
   FAIL_CREATE_ABI("010"),
   FAIL_PARSE_ROOT("020"),
   FAIL_GENERATE_CONTRACT("030"),

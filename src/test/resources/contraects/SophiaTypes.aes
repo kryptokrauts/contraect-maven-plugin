@@ -1,3 +1,6 @@
+include "List.aes"
+include "Library.aes"
+
 contract SophiaTypes =
 
     record company =
@@ -37,13 +40,14 @@ contract SophiaTypes =
     entrypoint testEmployee(employeeValue: employee) : employee =
         employeeValue
        
-    entrypoint testSingle(singleValue: int) : (int) =
+    entrypoint testSingle(singleValue: int) : (int) =        
         singleValue
         
     entrypoint testTuple(tupleValue: int * bool) : (int * bool) =
         tupleValue
          
     entrypoint testInt(intValue: int) : int =
+    	//Library.inc(intValue)
         intValue
 
     entrypoint testAddress(addressValue: address) : address =
@@ -62,6 +66,7 @@ contract SophiaTypes =
         listStringValue
 
     entrypoint testListInt(listIntValue: list(int)) : list(int) =
+    	List.is_empty(listIntValue)
         listIntValue
 
     entrypoint testListAddressInt(listAddressIntValue: list(address * int)) : list(address * int) =

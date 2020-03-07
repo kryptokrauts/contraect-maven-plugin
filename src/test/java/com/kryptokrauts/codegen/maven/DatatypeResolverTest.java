@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import com.kryptokrauts.aeternity.sdk.service.aeternity.AeternityServiceConfiguration;
 import com.kryptokrauts.codegen.CodegenUtil;
 import com.kryptokrauts.codegen.ContraectGenerator;
+import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import java.io.File;
@@ -43,53 +44,52 @@ public class DatatypeResolverTest extends BaseTest {
   }
 
   @Test
-  public void testTypeMappings() {
+  public void testTypeMappings() throws ClassNotFoundException {
 
     Map<String, Object> typeResolvingMap = new HashMap<String, Object>();
     // simple types
     typeResolvingMap.put("testInt", TypeName.get(BigInteger.class));
     typeResolvingMap.put("testString", TypeName.get(String.class));
     typeResolvingMap.put("testBool", TypeName.get(Boolean.class));
+    typeResolvingMap.put("testHash", targetPackage + "." + datatypeTestClassName + "$Hash");
+    typeResolvingMap.put("testBytes", targetPackage + "." + datatypeTestClassName + "$Bytes4");
     // complex types
     typeResolvingMap.put("testListString", ParameterizedTypeName.get(List.class, String.class));
     typeResolvingMap.put(
         "testTuple", ParameterizedTypeName.get(Pair.class, BigInteger.class, Boolean.class));
+    typeResolvingMap.put("testOptionStr", ParameterizedTypeName.get(Optional.class, String.class));
+    typeResolvingMap.put(
+        "testOptionList",
+        ParameterizedTypeName.get(
+            ClassName.get(Optional.class),
+            ParameterizedTypeName.get(List.class, BigInteger.class)));
+    typeResolvingMap.put(
+        "testMapStringAddress",
+        ParameterizedTypeName.get(
+            ClassName.get(Map.class),
+            TypeName.get(String.class),
+            TypeName.get(Class.forName(targetPackage + "." + datatypeTestClassName + "$Address"))));
     // custom types
     typeResolvingMap.put("testAddress", targetPackage + "." + datatypeTestClassName + "$Address");
     typeResolvingMap.put(
         "testCompanyAddress", targetPackage + "." + datatypeTestClassName + "$CompanyAddress");
     typeResolvingMap.put("testEmployee", targetPackage + "." + datatypeTestClassName + "$Employee");
-    // typeNames.put(
-    // listOfPairWithAddress,
-    // ParameterizedTypeName.get(
-    // ClassName.get(List.class),
-    // ParameterizedTypeName.get(
-    // Pair.class,
-    // CustomDatatypeMapper.getCustomDatatypes().get("Address").load(),
-    // BigInteger.class)));
-    // typeResolvingMap.put(mapType, ParameterizedTypeName.get(Map.class,
-    // BigInteger.class, Boolean.class));
-    // typeResolvingMap.put(listMapType,
-    // ParameterizedTypeName.get(ClassName.get(List.class),
-    // ParameterizedTypeName.get(Map.class, BigInteger.class,
-    // Boolean.class)));
-    // typeResolvingMap.put(listTupleTriplet,
-    // ParameterizedTypeName.get(ClassName.get(List.class),
-    // ParameterizedTypeName.get(Triplet.class,
-    // BigInteger.class, BigInteger.class,
-    // String.class)));
-    // typeResolvingMap.put(listListMapType,
-    // ParameterizedTypeName.get(ClassName.get(List.class),
-    // ParameterizedTypeName.get(ClassName.get(List.class),
-    // ParameterizedTypeName.get(Map.class,
-    // BigInteger.class, Boolean.class))));
+    typeResolvingMap.put(
+        "testListListMap",
+        ParameterizedTypeName.get(
+            ClassName.get(List.class),
+            ParameterizedTypeName.get(
+                ClassName.get(List.class),
+                ParameterizedTypeName.get(Map.class, BigInteger.class, BigInteger.class))));
 
     // test the mapping
     typeResolvingMap.forEach(
         (functionName, type) -> {
           try {
             System.out.println("Testing mapping for function " + functionName);
-            assertEquals(type.toString(), getReturnTypeName(functionName));
+            assertEquals(
+                type.toString().replaceAll("\\$", "\\."),
+                getReturnTypeName(functionName).replaceAll("\\$", "\\."));
           } catch (Exception e) {
             fail("Failed testing type mapping for function " + functionName, e);
           }
@@ -104,6 +104,15 @@ public class DatatypeResolverTest extends BaseTest {
     ioTestMap.put("testInt", BigInteger.valueOf(42));
     ioTestMap.put("testString", "aeternity");
     ioTestMap.put("testBool", Boolean.TRUE);
+    ioTestMap.put(
+        "testHash",
+        getCustomTypeInstance(
+            "hash",
+            Arrays.asList(String.class),
+            "#1111111111111111111111111111111111111111111111111111111111111234"));
+    ioTestMap.put(
+        "testBytes", getCustomTypeInstance("bytes4", Arrays.asList(String.class), "#12345678"));
+    ;
     // complex types
     ioTestMap.put("testListString", Arrays.asList("one", "of", "four", "strings"));
     ioTestMap.put("testTuple", new Pair<BigInteger, Boolean>(BigInteger.valueOf(42), true));
