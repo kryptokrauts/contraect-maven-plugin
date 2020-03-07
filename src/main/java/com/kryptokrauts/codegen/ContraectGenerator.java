@@ -468,14 +468,15 @@ public class ContraectGenerator {
                 VAR_CC_MODEL,
                 functionName)
             .addStatement(
-                "$T $L = this.$L.compiler.blockingDecodeCallResult($L,$S,$L.getContractCallObject().getReturnType(),$L.getContractCallObject().getReturnValue())",
+                "$T $L = this.$L.compiler.blockingDecodeCallResult($L,$S,$L.getContractCallObject().getReturnType(),$L.getContractCallObject().getReturnValue(),$L)",
                 ObjectResultWrapper.class,
                 VAR_RESULT_OBJECT,
                 GCV_AETERNITY_SERVICE,
                 GCV_AES_SOURCECODE,
                 functionName,
                 VAR_DR_RESULT,
-                VAR_DR_RESULT)
+                VAR_DR_RESULT,
+                GCV_AES_INCLUDES)
             .beginControlFlow("if($S.equalsIgnoreCase($L.getResult()))", "ok", VAR_DR_RESULT)
             .build();
 
@@ -508,13 +509,14 @@ public class ContraectGenerator {
                   GCPM_WAIT_FOR_TX_INFO,
                   VAR_CC_POST_TX_RESULT)
               .addStatement(
-                  "$L = this.$L.compiler.blockingDecodeCallResult($L,$S,$L.getCallInfo().getReturnType(),$L.getCallInfo().getReturnValue())",
+                  "$L = this.$L.compiler.blockingDecodeCallResult($L,$S,$L.getCallInfo().getReturnType(),$L.getCallInfo().getReturnValue(),$L)",
                   VAR_RESULT_OBJECT,
                   GCV_AETERNITY_SERVICE,
                   GCV_AES_SOURCECODE,
                   functionName,
                   VAR_CC_POST_TX_INFO,
-                  VAR_CC_POST_TX_INFO)
+                  VAR_CC_POST_TX_INFO,
+                  GCV_AES_INCLUDES)
               .beginControlFlow(
                   "if($S.equalsIgnoreCase($L.getCallInfo().getReturnType()))",
                   "ok",
@@ -1020,11 +1022,12 @@ public class ContraectGenerator {
             .addCode(
                 CodeBlock.builder()
                     .addStatement(
-                        "return $L.compiler.blockingEncodeCalldata($L,$L,$L).getResult()",
+                        "return $L.compiler.blockingEncodeCalldata($L,$L,$L,$L).getResult()",
                         GCV_AETERNITY_SERVICE,
                         GCV_AES_SOURCECODE,
                         MP_FUNCTION,
-                        MP_PARAMS)
+                        MP_PARAMS,
+                        GCV_AES_INCLUDES)
                     .build())
             .returns(String.class)
             .addModifiers(Modifier.PRIVATE)
