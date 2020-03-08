@@ -118,6 +118,7 @@ public class ContraectGenerator {
   public void generate(String aesFile) throws MojoExecutionException {
     String aesContent = readFile(aesFile);
     Map<String, String> includes = parseIncludes(aesFile);
+    includes.replaceAll((k, v) -> v.replace("\\\"", "\""));
     ACIResult abiContent =
         codegenConfiguration
             .getAeternityService()
@@ -126,7 +127,7 @@ public class ContraectGenerator {
     if (abiContent.getEncodedAci() != null) {
       JsonObject parsedAbi = this.checkABI(abiContent.getEncodedAci());
       if (parsedAbi != null) {
-        this.generateContractClass(parsedAbi, aesContent, includes);
+        this.generateContractClass(parsedAbi, aesContent, parseIncludes(aesFile));
       }
     } else {
       throw new MojoExecutionException(
@@ -171,7 +172,7 @@ public class ContraectGenerator {
 
   private String getFileContent(String path) {
     try {
-      return new String(Files.readAllBytes(Paths.get(path)));
+      return new String(Files.readAllBytes(Paths.get(path))).replace("\"", "\\\"");
     } catch (IOException e) {
       return null;
     }
