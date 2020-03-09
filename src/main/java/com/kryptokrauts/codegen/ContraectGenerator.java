@@ -255,7 +255,11 @@ public class ContraectGenerator {
                                           + "\""
                                           + includes
                                               .get(libToInclude)
-                                              .replaceAll("\r\n", "\\\\r\\\\n")
+                                              .replaceAll(
+                                                  System.lineSeparator(),
+                                                  System.lineSeparator()
+                                                      .replace("\r", "\\\\r")
+                                                      .replace("\n", "\\\\n"))
                                           + "\"")
                               .collect(Collectors.joining(",")))
                       .build())
