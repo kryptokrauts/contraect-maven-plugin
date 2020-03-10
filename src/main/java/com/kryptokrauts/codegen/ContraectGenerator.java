@@ -1,6 +1,9 @@
 package com.kryptokrauts.codegen;
 
+import com.google.common.collect.ImmutableMap;
 import com.kryptokrauts.aeternity.sdk.constants.BaseConstants;
+import com.kryptokrauts.aeternity.sdk.domain.ObjectResultWrapper;
+import com.kryptokrauts.aeternity.sdk.exception.AException;
 import com.kryptokrauts.aeternity.sdk.service.aeternity.AeternityServiceConfiguration;
 import com.kryptokrauts.aeternity.sdk.service.aeternity.AeternityServiceFactory;
 import com.kryptokrauts.aeternity.sdk.service.aeternity.impl.AeternityService;
@@ -14,41 +17,40 @@ import com.kryptokrauts.aeternity.sdk.service.transaction.domain.DryRunTransacti
 import com.kryptokrauts.aeternity.sdk.service.transaction.domain.PostTransactionResult;
 import com.kryptokrauts.aeternity.sdk.service.transaction.type.model.ContractCallTransactionModel;
 import com.kryptokrauts.aeternity.sdk.service.transaction.type.model.ContractCreateTransactionModel;
-import com.kryptokrauts.codegen.datatypes.BitsMapper;
-import com.kryptokrauts.codegen.datatypes.BoolMapper;
-import com.kryptokrauts.codegen.datatypes.BytesMapper;
-import com.kryptokrauts.codegen.datatypes.DefaultMapper;
-import com.kryptokrauts.codegen.datatypes.IntMapper;
-import com.kryptokrauts.codegen.datatypes.SophiaTypeMapper;
-import com.kryptokrauts.codegen.datatypes.StringMapper;
+import com.kryptokrauts.codegen.datatypes.DatatypeMappingHandler;
+import com.kryptokrauts.codegen.maven.ABIJsonConfiguration;
+import com.kryptokrauts.codegen.maven.CodegenConfiguration;
+import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
+import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.lang.model.element.Modifier;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.io.IOUtils;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.javatuples.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,9 +74,13 @@ public class ContraectGenerator {
 
   private static String GCV_AES_SOURCECODE = "aesSourcecode";
 
+  private static String GCV_AES_INCLUDES = "aesIncludes";
+
   private static String GCV_CONFIG = "config";
 
   private static String GCV_NUM_TRIALS = "numTrials";
+
+  private static String GCV_CHECK_BYTECODE = "checkBytecode";
 
   /**
    * ------------------------------
@@ -89,13 +95,11 @@ public class ContraectGenerator {
 
   private MethodSpec GCPM_CALLDATA_FOR_FCT;
 
-  private MethodSpec GCPM_GENERATE_MAP_PARAM;
-
   private MethodSpec GCPM_DRY_RUN;
 
   private MethodSpec GCPM_WAIT_FOR_TX_INFO;
 
-  private MethodSpec GCPM_WAIT_FOR_TX_MINED;
+  private MethodSpec GCPM_WAIT_FOR_TX;
 
   private MethodSpec GCPM_DEPLOY_CONTRACT;
 
@@ -103,21 +107,74 @@ public class ContraectGenerator {
 
   private MethodSpec GCPM_CREATE_CCM;
 
-  private MethodSpec GCPM_PARAM_CALL_ENC;
+  @NonNull private CodegenConfiguration codegenConfiguration;
 
-  @NonNull private CodegenConfiguration config;
+  @NonNull private ABIJsonConfiguration abiJsonConfiguration;
+
+  private DatatypeMappingHandler datatypeEncodingHandler;
+
+  private CustomTypesGenerator customTypesGenerator;
 
   public void generate(String aesFile) throws MojoExecutionException {
     String aesContent = readFile(aesFile);
+    Map<String, String> includes = parseIncludes(aesFile);
+    includes.replaceAll((k, v) -> v.replace("\\\"", "\""));
     ACIResult abiContent =
-        config.getAeternityService().compiler.blockingGenerateACI(aesContent, null, null);
+        codegenConfiguration
+            .getAeternityService()
+            .compiler
+            .blockingGenerateACI(aesContent, null, includes);
     if (abiContent.getEncodedAci() != null) {
-      this.generateContractClass(this.checkABI(abiContent.getEncodedAci()), aesContent);
+      JsonObject parsedAbi = this.checkABI(abiContent.getEncodedAci());
+      if (parsedAbi != null) {
+        this.generateContractClass(parsedAbi, aesContent, parseIncludes(aesFile));
+      }
     } else {
       throw new MojoExecutionException(
-          String.format(
-              "Cannot create ABI for contract code generation %s: %s\n%s",
-              aesFile, abiContent.getAeAPIErrorMessage(), abiContent.getRootErrorMessage()));
+          CodegenUtil.getBaseErrorMessage(
+              CmpErrorCode.FAIL_PARSE_ROOT,
+              String.format("Compiler failed to create ABI for contract %s", aesFile),
+              Arrays.asList(
+                  Pair.with("AeAPIErrorMessage", abiContent.getAeAPIErrorMessage()),
+                  Pair.with("RootErrorMessage", abiContent.getRootErrorMessage()))));
+    }
+  }
+
+  private Map<String, String> parseIncludes(String aesFile) throws MojoExecutionException {
+    Map<String, String> includes = new HashMap<String, String>();
+    System.out.println(aesFile);
+    /** Filter 1) contains include 2) cut from first " to last " 3) default libraries */
+    try (Stream<String> stream = Files.lines(Paths.get(aesFile))) {
+      stream
+          .filter(line -> line.contains("include"))
+          .map(line -> line.substring(line.indexOf("\"") + 1, line.lastIndexOf("\"")))
+          .filter(lib -> !CodegenUtil.DEFAULT_LIBRARIES.contains(lib))
+          .forEach(
+              libToInclude -> {
+                String fileContent = getFileContent(libToInclude);
+                if (fileContent == null) {
+                  fileContent =
+                      getFileContent(
+                          Paths.get(aesFile).getParent().resolve(libToInclude).toString());
+                }
+                includes.put(libToInclude, fileContent);
+              });
+
+    } catch (Exception e) {
+      throw new MojoExecutionException(
+          CodegenUtil.getBaseErrorMessage(
+              CmpErrorCode.FAIL_IMPORT_INCLUDES,
+              String.format("Error importing includes for contract defined in file %s", aesFile),
+              Arrays.asList(Pair.with("exception cause", e.getMessage()))));
+    }
+    return includes;
+  }
+
+  private String getFileContent(String path) {
+    try {
+      return new String(Files.readAllBytes(Paths.get(path))).replace("\"", "\\\"");
+    } catch (IOException e) {
+      return null;
     }
   }
 
@@ -129,14 +186,23 @@ public class ContraectGenerator {
    * @throws MojoExecutionException
    */
   private JsonObject checkABI(Object abiContent) throws MojoExecutionException {
-    return Optional.ofNullable(
-            JsonObject.mapFrom(abiContent).getJsonObject(config.getAbiJSONRootElement()))
-        .orElseThrow(
-            () ->
-                new MojoExecutionException(
-                    String.format(
-                        "Invalid json or configuration - cannot parse root element %s from json %s",
-                        config.getAbiJSONRootElement(), abiContent)));
+    try {
+      // just check if contract
+      JsonObject mappedAbi = JsonObject.mapFrom(abiContent);
+      if (mappedAbi.containsKey(abiJsonConfiguration.getRootElement())) {
+        return mappedAbi.getJsonObject(abiJsonConfiguration.getRootElement());
+      }
+    } catch (Exception e) {
+      throw new MojoExecutionException(
+          CodegenUtil.getBaseErrorMessage(
+              CmpErrorCode.FAIL_CREATE_ABI,
+              String.format(
+                  "Invalid json or configuration - cannot parse root element %s",
+                  abiJsonConfiguration.getRootElement()),
+              Arrays.asList(Pair.with("abiContent", abiContent))));
+    }
+    // ignore library
+    return null;
   }
 
   /**
@@ -145,33 +211,82 @@ public class ContraectGenerator {
    * @param abiJson
    * @throws MojoExecutionException
    */
-  private void generateContractClass(JsonObject abiJson, String aesContent)
+  private void generateContractClass(
+      JsonObject abiJson, String aesContent, Map<String, String> includes)
       throws MojoExecutionException {
     try {
+      String className =
+          CodegenUtil.getUppercaseClassName(
+              abiJson.getString(abiJsonConfiguration.getContractNameElement()));
+
+      this.datatypeEncodingHandler =
+          new DatatypeMappingHandler(codegenConfiguration.getTargetPackage(), className);
+      this.customTypesGenerator =
+          new CustomTypesGenerator(this.datatypeEncodingHandler, this.abiJsonConfiguration);
+
+      this.datatypeEncodingHandler.setCustomTypesGenerator(this.customTypesGenerator);
+
       TypeSpec contractTypeSpec =
-          TypeSpec.classBuilder(abiJson.getString(config.getAbiJSONNameElement()))
+          TypeSpec.classBuilder(className)
               .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
               .addField(AeternityService.class, GCV_AETERNITY_SERVICE, Modifier.PRIVATE)
               .addField(AeternityServiceConfiguration.class, GCV_CONFIG, Modifier.PRIVATE)
+              .addField(
+                  FieldSpec.builder(TypeName.BOOLEAN, GCV_CHECK_BYTECODE, Modifier.PRIVATE)
+                      .initializer("false")
+                      .build())
               .addField(String.class, GCV_DEPLOYED_CONTRACT_ID, Modifier.PRIVATE)
               .addField(
                   FieldSpec.builder(String.class, GCV_AES_SOURCECODE, Modifier.PRIVATE)
                       .initializer("$S", aesContent)
                       .build())
               .addField(
+                  FieldSpec.builder(Map.class, GCV_AES_INCLUDES, Modifier.PRIVATE)
+                      .initializer(
+                          "$T.of($L)",
+                          ImmutableMap.class,
+                          includes.keySet().stream()
+                              .map(
+                                  libToInclude ->
+                                      "\""
+                                          + libToInclude
+                                          + "\""
+                                          + ","
+                                          + "\""
+                                          + includes
+                                              .get(libToInclude)
+                                              .replaceAll(
+                                                  System.lineSeparator(),
+                                                  System.lineSeparator()
+                                                      .replace("\r", "\\\\r")
+                                                      .replace("\n", "\\\\n"))
+                                          + "\"")
+                              .collect(Collectors.joining(",")))
+                      .build())
+              .addField(
                   FieldSpec.builder(Logger.class, GCV_LOGGER, Modifier.PRIVATE, Modifier.STATIC)
                       .initializer(
                           "$T.getLogger($L)",
                           LoggerFactory.class,
-                          abiJson.getString(config.getAbiJSONNameElement()) + ".class")
+                          abiJson.getString(abiJsonConfiguration.getContractNameElement())
+                              + ".class")
                       .build())
               .addField(
                   FieldSpec.builder(int.class, GCV_NUM_TRIALS, Modifier.PRIVATE)
-                      .initializer("$L", config.getNumTrials())
+                      .initializer("$L", codegenConfiguration.getNumTrials())
                       .build())
               .addMethods(buildContractPrivateMethods())
-              .addMethod(buildConstructor())
+              .addMethods(buildConstructor())
               .addMethods(this.buildContractMethods(abiJson))
+              .addTypes(
+                  this.customTypesGenerator.generateCustomTypes(
+                      abiJson.getJsonArray(abiJsonConfiguration.getCustomTypeElement()),
+                      abiJson.getValue(abiJsonConfiguration.getStateElement())))
+              .addJavadoc(CodegenUtil.LICENSE_HEADER)
+              .addJavadoc(CodegenUtil.KRYPTOKRAUTS)
+              .addJavadoc(CodegenUtil.LICENSE)
+              .addJavadoc(CodegenUtil.GENERATED)
+              .addJavadoc(CodegenUtil.SUPPORT)
               .build();
 
       /** add default deploy method if no explicit method defined in contract */
@@ -179,14 +294,20 @@ public class ContraectGenerator {
         contractTypeSpec = contractTypeSpec.toBuilder().addMethod(buildDeployMethod(null)).build();
       }
 
-      JavaFile javaFile = JavaFile.builder(config.getTargetPackage(), contractTypeSpec).build();
+      JavaFile javaFile =
+          JavaFile.builder(codegenConfiguration.getTargetPackage(), contractTypeSpec).build();
 
-      Path path = Paths.get("", config.getTargetPath());
+      Path path = Paths.get("", codegenConfiguration.getTargetPath());
 
       javaFile.writeTo(path);
     } catch (Exception e) {
       throw new MojoExecutionException(
-          "Error generating contract " + abiJson.getString(config.getAbiJSONNameElement()), e);
+          CodegenUtil.getBaseErrorMessage(
+              CmpErrorCode.FAIL_GENERATE_CONTRACT,
+              String.format(
+                  "Error generating contract %s",
+                  abiJson.getString(abiJsonConfiguration.getContractNameElement())),
+              Arrays.asList(Pair.with("Exception", e))));
     }
   }
 
@@ -195,7 +316,7 @@ public class ContraectGenerator {
    *
    * @return
    */
-  private MethodSpec buildConstructor() {
+  private List<MethodSpec> buildConstructor() {
 
     // Declare parameter names
     String PARAM_AETERNITY_SERVICE_CONFIGURATION = "aeternityServiceConfiguration";
@@ -210,27 +331,48 @@ public class ContraectGenerator {
                 GCV_AETERNITY_SERVICE,
                 AeternityServiceFactory.class,
                 PARAM_AETERNITY_SERVICE_CONFIGURATION)
+            .addStatement("this.$L = $L", GCV_CHECK_BYTECODE, GCV_CHECK_BYTECODE)
+            .beginControlFlow("if(this.$L)", GCV_CHECK_BYTECODE)
             // .addStatement("this.$N()", GCPM_CONTRACT_EXISTS)
+            .endControlFlow()
             .build();
 
-    return MethodSpec.constructorBuilder()
-        .addParameters(
-            Arrays.asList(
-                ParameterSpec.builder(
-                        AeternityServiceConfiguration.class, PARAM_AETERNITY_SERVICE_CONFIGURATION)
-                    .build(),
-                ParameterSpec.builder(String.class, GCV_DEPLOYED_CONTRACT_ID).build()))
-        .addCode(codeBlock)
-        .addModifiers(Modifier.PUBLIC)
-        .addException(RuntimeException.class)
-        .build();
+    return Arrays.asList(
+        MethodSpec.constructorBuilder()
+            .addParameters(
+                Arrays.asList(
+                    ParameterSpec.builder(
+                            AeternityServiceConfiguration.class,
+                            PARAM_AETERNITY_SERVICE_CONFIGURATION)
+                        .build(),
+                    ParameterSpec.builder(String.class, GCV_DEPLOYED_CONTRACT_ID).build(),
+                    ParameterSpec.builder(TypeName.BOOLEAN, GCV_CHECK_BYTECODE).build()))
+            .addCode(codeBlock)
+            .addModifiers(Modifier.PUBLIC)
+            .addException(RuntimeException.class)
+            .build(),
+        MethodSpec.constructorBuilder()
+            .addParameters(
+                Arrays.asList(
+                    ParameterSpec.builder(
+                            AeternityServiceConfiguration.class,
+                            PARAM_AETERNITY_SERVICE_CONFIGURATION)
+                        .build(),
+                    ParameterSpec.builder(String.class, GCV_DEPLOYED_CONTRACT_ID).build()))
+            .addStatement(
+                "this($L,$L,false)",
+                PARAM_AETERNITY_SERVICE_CONFIGURATION,
+                GCV_DEPLOYED_CONTRACT_ID)
+            .addModifiers(Modifier.PUBLIC)
+            .addException(RuntimeException.class)
+            .build());
   }
 
   /** iterate over method declarations and create method spec */
   private List<MethodSpec> buildContractMethods(JsonObject abi) {
     List<MethodSpec> methods = new LinkedList<MethodSpec>();
-    if (abi != null && abi.getValue(config.getAbiJSONFunctionsElement()) != null) {
-      JsonArray functions = abi.getJsonArray(config.getAbiJSONFunctionsElement());
+    if (abi != null && abi.getValue(abiJsonConfiguration.getFunctionsElement()) != null) {
+      JsonArray functions = abi.getJsonArray(abiJsonConfiguration.getFunctionsElement());
       for (Object methodDescription : functions.getList()) {
         methods.add(this.parseFunctionToMethodSpec(JsonObject.mapFrom(methodDescription)));
       }
@@ -249,53 +391,102 @@ public class ContraectGenerator {
   private MethodSpec parseFunctionToMethodSpec(JsonObject functionDescription) {
     String VAR_DR_RESULT = "dryRunResult";
     String VAR_RESULT_OBJECT = "resultObject";
+
     String VAR_CC_MODEL = "contractCallModel";
     String VAR_CC_POST_TX_RESULT = "contractCallPostTxResult";
     String VAR_CC_POST_TX_INFO = "contractCallPostTxInfo";
+    String VAR_ENCODED_PARAM_LIST = "encodedParameterList";
+    String VAR_CC_AMOUNT = "amount";
 
     String functionName =
-        replaceInvalidChars(functionDescription.getString(config.getAbiJSONFunctionsNameElement()));
+        replaceInvalidChars(
+            functionDescription.getString(abiJsonConfiguration.getFunctionNameElement()));
 
-    if (config.getInitFunctionName().equalsIgnoreCase(functionName)) {
+    if (codegenConfiguration.getInitFunctionName().equalsIgnoreCase(functionName)) {
       return buildDeployMethod(functionDescription);
     }
 
+    // resolve list of method parameters
     List<ParameterSpec> params = getParameterSpecFromSignature(functionDescription);
 
-    String VAR_PARAMS_STRING = getParameterFunctionCallFromSignature(functionDescription);
+    boolean isStateful =
+        functionDescription.getBoolean(abiJsonConfiguration.getFunctionStatefulElement());
+    boolean isPayable = false;
+    ParameterSpec amount = null;
 
+    if (functionDescription.containsKey(abiJsonConfiguration.getPayableElement())) {
+      if (functionDescription.getBoolean(abiJsonConfiguration.getPayableElement())) {
+        isPayable = true;
+        amount = ParameterSpec.builder(TypeName.get(BigInteger.class), VAR_CC_AMOUNT).build();
+      }
+    }
+
+    // resolve the return type
+    TypeName payloadType =
+        this.datatypeEncodingHandler.getTypeNameFromJSON(
+            functionDescription.getValue(abiJsonConfiguration.getFunctionReturnTypeElement()));
+    boolean isVoid = TypeName.get(Void.class).equals(payloadType.box());
+
+    TypeName returnType = payloadType;
+
+    if (isStateful) {
+      if (isVoid) {
+        returnType = ClassName.get(String.class);
+      } else {
+        returnType =
+            ParameterizedTypeName.get(
+                ClassName.get(Pair.class), TypeName.get(String.class), payloadType);
+      }
+    }
+
+    CodeBlock returnCodeBlock =
+        mapResultCodeblock(
+            VAR_RESULT_OBJECT,
+            VAR_CC_POST_TX_RESULT,
+            payloadType,
+            functionName,
+            isStateful,
+            isVoid);
+
+    // the logic block
     CodeBlock codeBlock =
         CodeBlock.builder()
-            .add(
-                "$T $L = this.$N($S" + (VAR_PARAMS_STRING.length() > 0 ? "," : ""),
+            .addStatement(
+                "$T $L = $T.asList($L)",
+                ParameterizedTypeName.get(List.class, String.class),
+                VAR_ENCODED_PARAM_LIST,
+                Arrays.class,
+                getParameterEncoding(params))
+            .addStatement(
+                "$T $L = this.$N($S,$L,$L)",
                 ContractCallTransactionModel.class,
                 VAR_CC_MODEL,
                 GCPM_CREATE_CCM,
-                functionName)
-            .add(VAR_PARAMS_STRING)
-            .add(");")
+                functionName,
+                VAR_ENCODED_PARAM_LIST,
+                isPayable ? VAR_CC_AMOUNT : "null")
             .addStatement(
-                "$T $L = this.$N($L)",
+                "$T $L = this.$N($L,$S)",
                 DryRunTransactionResult.class,
                 VAR_DR_RESULT,
                 GCPM_DRY_RUN,
-                VAR_CC_MODEL)
+                VAR_CC_MODEL,
+                functionName)
             .addStatement(
-                "$T $L = this.$L.compiler.blockingDecodeCallResult($L,$S,$L.getContractCallObject().getReturnType(),$L.getContractCallObject().getReturnValue()).toString()",
-                Object.class,
+                "$T $L = this.$L.compiler.blockingDecodeCallResult($L,$S,$L.getContractCallObject().getReturnType(),$L.getContractCallObject().getReturnValue(),$L)",
+                ObjectResultWrapper.class,
                 VAR_RESULT_OBJECT,
                 GCV_AETERNITY_SERVICE,
                 GCV_AES_SOURCECODE,
                 functionName,
                 VAR_DR_RESULT,
-                VAR_DR_RESULT)
+                VAR_DR_RESULT,
+                GCV_AES_INCLUDES)
             .beginControlFlow("if($S.equalsIgnoreCase($L.getResult()))", "ok", VAR_DR_RESULT)
             .build();
 
-    Boolean stateful = functionDescription.getBoolean(config.getAbiJSONFunctionStatefulElement());
-
     /** stateful call - add gas and gasPrice to transaction and post */
-    if (stateful) {
+    if (isStateful) {
       codeBlock =
           codeBlock
               .toBuilder()
@@ -323,21 +514,19 @@ public class ContraectGenerator {
                   GCPM_WAIT_FOR_TX_INFO,
                   VAR_CC_POST_TX_RESULT)
               .addStatement(
-                  "$L = this.$L.compiler.blockingDecodeCallResult($L,$S,$L.getCallInfo().getReturnType(),$L.getCallInfo().getReturnValue())",
+                  "$L = this.$L.compiler.blockingDecodeCallResult($L,$S,$L.getCallInfo().getReturnType(),$L.getCallInfo().getReturnValue(),$L)",
                   VAR_RESULT_OBJECT,
                   GCV_AETERNITY_SERVICE,
                   GCV_AES_SOURCECODE,
                   functionName,
                   VAR_CC_POST_TX_INFO,
-                  VAR_CC_POST_TX_INFO)
+                  VAR_CC_POST_TX_INFO,
+                  GCV_AES_INCLUDES)
               .beginControlFlow(
                   "if($S.equalsIgnoreCase($L.getCallInfo().getReturnType()))",
                   "ok",
                   VAR_CC_POST_TX_INFO)
-              .add(
-                  this.mapReturnTypeFromCall(
-                      functionDescription.getValue(config.getAbiJSONFunctionsReturnTypeElement()),
-                      VAR_RESULT_OBJECT))
+              .add(returnCodeBlock)
               .endControlFlow()
               .addStatement(
                   "throw new $T($T.format($S,$L))",
@@ -350,14 +539,7 @@ public class ContraectGenerator {
 
     /** not a stateful call, return dryRun result */
     else {
-      codeBlock =
-          codeBlock
-              .toBuilder()
-              .add(
-                  this.mapReturnTypeFromCall(
-                      functionDescription.getValue(config.getAbiJSONFunctionsReturnTypeElement()),
-                      VAR_RESULT_OBJECT))
-              .build();
+      codeBlock = codeBlock.toBuilder().add(returnCodeBlock).build();
     }
 
     codeBlock =
@@ -372,15 +554,76 @@ public class ContraectGenerator {
                 VAR_RESULT_OBJECT)
             .build();
 
-    return MethodSpec.methodBuilder(functionName)
-        .addParameters(params)
-        .addCode(codeBlock)
-        .addJavadoc(stateful ? "Stateful function" : "")
-        .returns(
-            this.mapClass(
-                functionDescription.getValue(config.getAbiJSONFunctionsReturnTypeElement())))
-        .addJavadoc("")
-        .addModifiers(Modifier.PUBLIC)
+    MethodSpec method =
+        MethodSpec.methodBuilder(functionName)
+            .addParameters(params)
+            .addCode(codeBlock)
+            .addJavadoc(isStateful ? "Stateful function" : "")
+            .returns(returnType)
+            .addJavadoc("")
+            .addModifiers(Modifier.PUBLIC)
+            .build();
+
+    if (amount != null) {
+      method = method.toBuilder().addParameter(amount).build();
+    }
+
+    return method;
+  }
+
+  private CodeBlock mapResultCodeblock(
+      String VAR_RESULT_OBJECT,
+      String VAR_POST_TX_RESULT,
+      TypeName resultType,
+      String functionName,
+      boolean isStateful,
+      boolean isVoid) {
+    String VAR_UNWRAPPED_RESULT_OBJECT = "unwrappedResultObject";
+    String VAR_RESULT_JSON_MAP = "resultJSONMap";
+
+    CodeBlock mappedToReturnValue =
+        this.datatypeEncodingHandler.mapToReturnValue(resultType, VAR_UNWRAPPED_RESULT_OBJECT);
+
+    CodeBlock returnStatement =
+        CodeBlock.builder().addStatement("return $L", mappedToReturnValue).build();
+
+    if (isStateful) {
+      if (isVoid) {
+        returnStatement =
+            CodeBlock.builder().addStatement("return $L.getTxHash()", VAR_POST_TX_RESULT).build();
+      } else {
+        returnStatement =
+            CodeBlock.builder()
+                .add("return $T.with($L.getTxHash(),", Pair.class, VAR_POST_TX_RESULT)
+                .add(mappedToReturnValue)
+                .add(");")
+                .build();
+      }
+    }
+
+    return CodeBlock.builder()
+        .addStatement(
+            "$T $L = $L.getResult()", Object.class, VAR_UNWRAPPED_RESULT_OBJECT, VAR_RESULT_OBJECT)
+        .beginControlFlow("if($L instanceof $T)", VAR_UNWRAPPED_RESULT_OBJECT, Map.class)
+        .addStatement(
+            "$T $L = $T.mapFrom($L)",
+            JsonObject.class,
+            VAR_RESULT_JSON_MAP,
+            JsonObject.class,
+            VAR_UNWRAPPED_RESULT_OBJECT)
+        .beginControlFlow(
+            "if($L.containsKey($S))", VAR_RESULT_JSON_MAP, codegenConfiguration.getResultAbortKey())
+        .addStatement(
+            "throw new $T($T.format($S,$S,$L.getValue($S)))",
+            AException.class,
+            String.class,
+            "An error occured calling function %s: %s",
+            functionName,
+            VAR_RESULT_JSON_MAP,
+            codegenConfiguration.getResultAbortKey())
+        .endControlFlow()
+        .endControlFlow()
+        .add(returnStatement)
         .build();
   }
 
@@ -391,32 +634,20 @@ public class ContraectGenerator {
     return value;
   }
 
-  private String getParameterFunctionCallFromSignature(JsonObject functionDescription) {
-    List<String> VAR_PARAMS = new LinkedList<>();
-    functionDescription
-        .getJsonArray(config.getAbiJSONFunctionArgumentElement())
-        .forEach(
-            param -> {
-              JsonObject paramMap = JsonObject.mapFrom(param);
-              VAR_PARAMS.add(
-                  replaceInvalidChars(
-                      paramMap.getString(config.getAbiJSONFunctionArgumentNameElement())));
-            });
-
-    return VAR_PARAMS.size() > 0 ? String.join(",", VAR_PARAMS) : "";
-  }
-
   private List<ParameterSpec> getParameterSpecFromSignature(JsonObject functionDescription) {
     List<ParameterSpec> params =
-        functionDescription.getJsonArray(config.getAbiJSONFunctionArgumentElement()).stream()
+        functionDescription.getJsonArray(abiJsonConfiguration.getFunctionArgumentsElement())
+            .stream()
             .map(
                 param -> {
                   JsonObject paramMap = JsonObject.mapFrom(param);
                   return ParameterSpec.builder(
-                          mapClass(
-                              paramMap.getValue(config.getAbiJSONFunctionArgumentTypeElement())),
+                          this.datatypeEncodingHandler.getTypeNameFromJSON(
+                              paramMap.getValue(
+                                  abiJsonConfiguration.getFunctionArgumentTypeElement())),
                           replaceInvalidChars(
-                              paramMap.getString(config.getAbiJSONFunctionArgumentNameElement())))
+                              paramMap.getString(
+                                  abiJsonConfiguration.getFunctionArgumentNameElement())))
                       .build();
                 })
             .collect(Collectors.toList());
@@ -430,30 +661,37 @@ public class ContraectGenerator {
    */
   private MethodSpec buildDeployMethod(JsonObject functionDescription) {
     String VAR_CALLDATA = "calldata";
+    String VAR_ENCODED_PARAM_LIST = "encodedParameterList";
     List<ParameterSpec> parameters = new LinkedList<>();
 
     CodeBlock getInitFunctionCalldata =
         CodeBlock.builder()
             .addStatement(
-                "$T $L = this.$N($S)",
+                "$T $L = this.$N($S, new $T<>())",
                 String.class,
                 VAR_CALLDATA,
                 GCPM_CALLDATA_FOR_FCT,
-                config.getInitFunctionName())
+                codegenConfiguration.getInitFunctionName(),
+                LinkedList.class)
             .build();
-    if (functionDescription != null
-        && getParameterFunctionCallFromSignature(functionDescription).length() > 0) {
+    if (functionDescription != null) {
+      parameters = getParameterSpecFromSignature(functionDescription);
       getInitFunctionCalldata =
           CodeBlock.builder()
+              .addStatement(
+                  "$T $L = $T.asList($L)",
+                  ParameterizedTypeName.get(List.class, String.class),
+                  VAR_ENCODED_PARAM_LIST,
+                  Arrays.class,
+                  getParameterEncoding(parameters))
               .addStatement(
                   "$T $L = this.$N($S,$L)",
                   String.class,
                   VAR_CALLDATA,
                   GCPM_CALLDATA_FOR_FCT,
-                  config.getInitFunctionName(),
-                  getParameterFunctionCallFromSignature(functionDescription))
+                  codegenConfiguration.getInitFunctionName(),
+                  VAR_ENCODED_PARAM_LIST)
               .build();
-      parameters = this.getParameterSpecFromSignature(functionDescription);
     }
 
     GCPM_DEPLOY =
@@ -464,7 +702,11 @@ public class ContraectGenerator {
                     .addStatement("return this.$N($L)", GCPM_DEPLOY_CONTRACT, VAR_CALLDATA)
                     .build())
             .addParameters(parameters)
-            .returns(String.class)
+            .returns(
+                ParameterizedTypeName.get(
+                    ClassName.get(Pair.class),
+                    TypeName.get(String.class),
+                    TypeName.get(String.class)))
             .addModifiers(Modifier.PUBLIC)
             .build();
 
@@ -481,13 +723,11 @@ public class ContraectGenerator {
   private List<MethodSpec> buildContractPrivateMethods() {
     return Arrays.asList(
         buildContractExistsMethod(),
-        buildGetParamCallEncoding(),
         buildGetNextNonceMethod(),
-        buildGenerateMapParam(),
         buildGetCalldataForFunctionMethod(),
         buildCreateTransactionCallModelMethod(),
         buildDryRunMethod(),
-        buildWaitForTxMinedMethod(),
+        buildWaitForTxMethod(),
         buildWaitForTxInfoMethod(),
         buildDeployContractMethod());
   }
@@ -508,11 +748,12 @@ public class ContraectGenerator {
             .addCode(
                 CodeBlock.builder()
                     .addStatement(
-                        "$T $L = this.$L.compiler.blockingCompile($L,null,null)",
+                        "$T $L = this.$L.compiler.blockingCompile($L,null,$L).getResult()",
                         String.class,
                         VAR_BYTECODE,
                         GCV_AETERNITY_SERVICE,
-                        GCV_AES_SOURCECODE)
+                        GCV_AES_SOURCECODE,
+                        GCV_AES_INCLUDES)
                     .addStatement(
                         "$T $L = $T.builder()"
                             + ".amount($T.ZERO)"
@@ -541,7 +782,7 @@ public class ContraectGenerator {
                         BigInteger.class,
                         GCV_CONFIG)
                     .addStatement(
-                        "$T $L = this.$L.transactions.blockingCreateUnsignedTransaction($L)",
+                        "$T $L = this.$L.transactions.blockingCreateUnsignedTransaction($L).getResult()",
                         String.class,
                         VAR_CC_UNSIGNED_TX,
                         GCV_AETERNITY_SERVICE,
@@ -563,6 +804,17 @@ public class ContraectGenerator {
                         DryRunTransactionResult.class,
                         VAR_CC_DR_RESULT,
                         VAR_CC_DR_RESULTS)
+                    .beginControlFlow(
+                        "if($L.getContractCallObject().getReturnType().equals($S))",
+                        VAR_CC_DR_RESULT,
+                        this.codegenConfiguration.getResultRevertKey())
+                    .addStatement(
+                        "throw new $T($T.format($S,$L.getContractCallObject().getReturnValue()))",
+                        IllegalArgumentException.class,
+                        String.class,
+                        "Contract could not be deployed due to following exception %s",
+                        VAR_CC_DR_RESULT)
+                    .endControlFlow()
                     .addStatement(
                         "$L = $L.toBuilder()"
                             + ".gas($L.getContractCallObject().getGasUsed())"
@@ -588,9 +840,17 @@ public class ContraectGenerator {
                         "this.$L = $L.getCallInfo().getContractId()",
                         GCV_DEPLOYED_CONTRACT_ID,
                         VAR_CC_POST_TX_INFO)
-                    .addStatement("return $L.getCallInfo().getContractId()", VAR_CC_POST_TX_INFO)
+                    .addStatement(
+                        "return $T.with($L.getTxHash(),$L.getCallInfo().getContractId())",
+                        Pair.class,
+                        VAR_CC_POST_TX_RESULT,
+                        VAR_CC_POST_TX_INFO)
                     .build())
-            .returns(String.class)
+            .returns(
+                ParameterizedTypeName.get(
+                    ClassName.get(Pair.class),
+                    TypeName.get(String.class),
+                    TypeName.get(String.class)))
             .addModifiers(Modifier.PRIVATE)
             .build();
     return GCPM_DEPLOY_CONTRACT;
@@ -604,7 +864,7 @@ public class ContraectGenerator {
             .addParameter(ParameterSpec.builder(String.class, MP_TXHASH).build())
             .addCode(
                 CodeBlock.builder()
-                    .addStatement("this.$N($L)", GCPM_WAIT_FOR_TX_MINED, MP_TXHASH)
+                    .addStatement("this.$N($L)", GCPM_WAIT_FOR_TX, MP_TXHASH)
                     .addStatement(
                         "return this.$L.info.blockingGetTransactionInfoByHash($L)",
                         GCV_AETERNITY_SERVICE,
@@ -616,15 +876,15 @@ public class ContraectGenerator {
     return GCPM_WAIT_FOR_TX_INFO;
   }
 
-  private MethodSpec buildWaitForTxMinedMethod() {
+  private MethodSpec buildWaitForTxMethod() {
     String MP_TXHASH = "txHash";
 
     String VAR_BLOCK_HEIGHT = "blockHeight";
     String VAR_MINED_TX = "minedTx";
     String VAR_DONE_TRIALS = "doneTrials";
 
-    this.GCPM_WAIT_FOR_TX_MINED =
-        MethodSpec.methodBuilder("waitForTxMined")
+    this.GCPM_WAIT_FOR_TX =
+        MethodSpec.methodBuilder("waitForTx")
             .addParameter(ParameterSpec.builder(String.class, MP_TXHASH).build())
             .addCode(
                 CodeBlock.builder()
@@ -643,7 +903,10 @@ public class ContraectGenerator {
                         MP_TXHASH)
                     .beginControlFlow("if($L.getBlockHeight().intValue() > 1)", VAR_MINED_TX)
                     .addStatement(
-                        "$L.debug($S+$L)", GCV_LOGGER, "Mined transaction is: ", VAR_MINED_TX)
+                        "$L.debug($S+$L)",
+                        GCV_LOGGER,
+                        "Transaction included in block: ",
+                        VAR_MINED_TX)
                     .addStatement(
                         "$L = $L.getBlockHeight().intValue()", VAR_BLOCK_HEIGHT, VAR_MINED_TX)
                     .nextControlFlow("else")
@@ -651,7 +914,7 @@ public class ContraectGenerator {
                         "$L.info($T.format($S,$L,$L))",
                         GCV_LOGGER,
                         String.class,
-                        "Transaction not mined yet, trying again in 1 second (%s of %s)...",
+                        "Transaction not included in a block yet, trying again in 1 second (%s of %s)...",
                         VAR_DONE_TRIALS,
                         GCV_NUM_TRIALS)
                     .beginControlFlow("try")
@@ -661,7 +924,7 @@ public class ContraectGenerator {
                         "throw new $T($T.format($S,$L,$L))",
                         RuntimeException.class,
                         String.class,
-                        "Waiting for transaction %s to be mined was interrupted due to technical error: %s",
+                        "Waiting for transaction %s to be included in a block was interrupted due to technical error: %s",
                         MP_TXHASH,
                         "e.getMessage()")
                     .endControlFlow()
@@ -673,7 +936,7 @@ public class ContraectGenerator {
                         "throw new $T($T.format($S,$L,$L))",
                         RuntimeException.class,
                         String.class,
-                        "Transaction %s was not mined after %s trials, aborting",
+                        "Transaction %s was not included in a block after %s trials, aborting",
                         MP_TXHASH,
                         VAR_DONE_TRIALS)
                     .endControlFlow()
@@ -682,7 +945,7 @@ public class ContraectGenerator {
             .returns(TransactionResult.class)
             .addModifiers(Modifier.PRIVATE)
             .build();
-    return GCPM_WAIT_FOR_TX_MINED;
+    return GCPM_WAIT_FOR_TX;
   }
 
   private MethodSpec buildContractExistsMethod() {
@@ -698,7 +961,7 @@ public class ContraectGenerator {
                         GCV_DEPLOYED_CONTRACT_ID,
                         GCV_DEPLOYED_CONTRACT_ID)
                     .addStatement(
-                        "String $L = this.$L.info.blockingGetContractByteCode($L)",
+                        "String $L = this.$L.info.blockingGetContractByteCode($L).getResult()",
                         VAR_BYTECODE,
                         GCV_AETERNITY_SERVICE,
                         GCV_DEPLOYED_CONTRACT_ID)
@@ -749,103 +1012,27 @@ public class ContraectGenerator {
     return this.GCPM_NEXT_NONCE;
   }
 
-  private MethodSpec buildGenerateMapParam() {
-    String VAR_RECP_COND_SET = "recipientConditionSet";
-    String MP_PARAMS = "params";
-    this.GCPM_GENERATE_MAP_PARAM =
-        MethodSpec.methodBuilder("generateMapParam")
-            .addParameter(ParameterSpec.builder(Map.class, MP_PARAMS).build())
-            .addCode(
-                CodeBlock.builder()
-                    .addStatement(
-                        "$T $L = new $T()",
-                        ParameterizedTypeName.get(Set.class, String.class),
-                        VAR_RECP_COND_SET,
-                        HashSet.class)
-                    .addStatement(
-                        "$L.forEach((k,v)->$L.add(\"[\"+k+\"] =\"+v))",
-                        MP_PARAMS,
-                        VAR_RECP_COND_SET)
-                    .addStatement(
-                        "return \"{\"+$L.stream().collect($T.joining(\",\"))+\"}\"",
-                        VAR_RECP_COND_SET,
-                        Collectors.class)
-                    .build())
-            .returns(String.class)
-            .addModifiers(Modifier.PRIVATE)
-            .build();
-    return this.GCPM_GENERATE_MAP_PARAM;
-  }
-
-  /**
-   * method which defines, how to pass simple type to the function call if string, enclose in
-   * brackets, otherwise just use the value
-   */
-  private MethodSpec buildGetParamCallEncoding() {
-    String MP_PARAM = "param";
-    this.GCPM_PARAM_CALL_ENC =
-        MethodSpec.methodBuilder("getParamCallEncoding")
-            .addParameter(ParameterSpec.builder(Object.class, MP_PARAM).build())
-            .addCode(
-                CodeBlock.builder()
-                    .beginControlFlow("if( $L != null)", MP_PARAM)
-                    .beginControlFlow("if($L instanceof $T)", MP_PARAM, String.class)
-                    .addStatement("return \"\\\"\"+$L+\"\\\"\"", MP_PARAM)
-                    .nextControlFlow("else")
-                    .addStatement("return $L.toString()", MP_PARAM)
-                    .endControlFlow()
-                    .endControlFlow()
-                    .addStatement("return \"\"")
-                    .build())
-            .returns(String.class)
-            .addModifiers(Modifier.PRIVATE)
-            .build();
-    return this.GCPM_PARAM_CALL_ENC;
-  }
-
   private MethodSpec buildGetCalldataForFunctionMethod() {
-    String VAR_ARGUMENTS = "arguments";
-    String VAR_PARAM = "param";
     String MP_PARAMS = "params";
     String MP_FUNCTION = "function";
 
     this.GCPM_CALLDATA_FOR_FCT =
         MethodSpec.methodBuilder("getCalldataForFunction")
-            .varargs(true)
             .addParameters(
                 Arrays.asList(
                     ParameterSpec.builder(String.class, MP_FUNCTION).build(),
-                    ParameterSpec.builder(Object[].class, MP_PARAMS).build()))
+                    ParameterSpec.builder(
+                            ParameterizedTypeName.get(List.class, String.class), MP_PARAMS)
+                        .build()))
             .addCode(
                 CodeBlock.builder()
                     .addStatement(
-                        "$T $N = null",
-                        ParameterizedTypeName.get(List.class, String.class),
-                        VAR_ARGUMENTS)
-                    .beginControlFlow("if($L != null)", MP_PARAMS)
-                    .addStatement(
-                        "$L = new $T()",
-                        VAR_ARGUMENTS,
-                        ParameterizedTypeName.get(LinkedList.class, String.class))
-                    .beginControlFlow("for($T $L : $L)", Object.class, VAR_PARAM, MP_PARAMS)
-                    .beginControlFlow("if($L instanceof $T)", VAR_PARAM, Map.class)
-                    .addStatement(
-                        "$L.add($N(($T) $L))",
-                        VAR_ARGUMENTS,
-                        GCPM_GENERATE_MAP_PARAM,
-                        Map.class,
-                        VAR_PARAM)
-                    .nextControlFlow("else")
-                    .addStatement("$L.add($N($L))", VAR_ARGUMENTS, GCPM_PARAM_CALL_ENC, VAR_PARAM)
-                    .endControlFlow()
-                    .endControlFlow()
-                    .endControlFlow()
-                    .addStatement(
-                        "return $L.compiler.blockingEncodeCalldata($L,$L,$L)",
+                        "return $L.compiler.blockingEncodeCalldata($L,$L,$L,$L).getResult()",
                         GCV_AETERNITY_SERVICE,
                         GCV_AES_SOURCECODE,
                         MP_FUNCTION,
-                        VAR_ARGUMENTS)
+                        MP_PARAMS,
+                        GCV_AES_INCLUDES)
                     .build())
             .returns(String.class)
             .addModifiers(Modifier.PRIVATE)
@@ -856,6 +1043,7 @@ public class ContraectGenerator {
   private MethodSpec buildCreateTransactionCallModelMethod() {
     String MP_PARAMS = "params";
     String MP_FUNCTION = "function";
+    String MP_AMOUNT = "amount";
 
     String VAR_CALLDATA = "callData";
 
@@ -864,7 +1052,10 @@ public class ContraectGenerator {
             .addParameters(
                 Arrays.asList(
                     ParameterSpec.builder(String.class, MP_FUNCTION).build(),
-                    ParameterSpec.builder(Object[].class, MP_PARAMS).build()))
+                    ParameterSpec.builder(
+                            ParameterizedTypeName.get(List.class, String.class), MP_PARAMS)
+                        .build(),
+                    ParameterSpec.builder(TypeName.get(BigInteger.class), MP_AMOUNT).build()))
             .addCode(
                 CodeBlock.builder()
                     .addStatement(
@@ -879,7 +1070,7 @@ public class ContraectGenerator {
                             + ".gas($T.valueOf(1579000l))"
                             + ".contractId($L)"
                             + ".gasPrice($T.valueOf($T.MINIMAL_GAS_PRICE))"
-                            + ".amount($T.ZERO)"
+                            + ".amount($L!=null?$L:$T.ZERO)"
                             + ".nonce(this.$N())"
                             + ".callerId(this.$L.getBaseKeyPair().getPublicKey())"
                             + ".ttl($T.ZERO)"
@@ -891,6 +1082,8 @@ public class ContraectGenerator {
                         GCV_DEPLOYED_CONTRACT_ID,
                         BigInteger.class,
                         BaseConstants.class,
+                        MP_AMOUNT,
+                        MP_AMOUNT,
                         BigInteger.class,
                         GCPM_NEXT_NONCE,
                         GCV_CONFIG,
@@ -898,7 +1091,6 @@ public class ContraectGenerator {
                         GCV_CONFIG)
                     .build())
             .returns(ContractCallTransactionModel.class)
-            .varargs(true)
             .build();
 
     return this.GCPM_CREATE_CCM;
@@ -906,6 +1098,7 @@ public class ContraectGenerator {
 
   private MethodSpec buildDryRunMethod() {
     String MP_CC_MODEL = "contractCallModel";
+    String MP_CC_FUNC_NAME = "functionName";
 
     String VAR_DR_RESULTS = "dryRunResults";
 
@@ -913,7 +1106,8 @@ public class ContraectGenerator {
         MethodSpec.methodBuilder("dryRunCall")
             .addParameters(
                 Arrays.asList(
-                    ParameterSpec.builder(ContractCallTransactionModel.class, MP_CC_MODEL).build()))
+                    ParameterSpec.builder(ContractCallTransactionModel.class, MP_CC_MODEL).build(),
+                    ParameterSpec.builder(String.class, MP_CC_FUNC_NAME).build()))
             .addCode(
                 CodeBlock.builder()
                     .addStatement(
@@ -935,12 +1129,30 @@ public class ContraectGenerator {
                     .addStatement("return $L.getResults().get(0)", VAR_DR_RESULTS)
                     .endControlFlow()
                     .addStatement(
-                        "throw new $T($S)", RuntimeException.class, "call of function failed")
+                        "throw new $T($T.format($S,$L,$L.getAeAPIErrorMessage(),$L.getRootErrorMessage(),$S))",
+                        RuntimeException.class,
+                        String.class,
+                        "\nDry run call of function %s failed%nCausing Exception: %s%nException Details: %s%nException Hint   : %s",
+                        MP_CC_FUNC_NAME,
+                        VAR_DR_RESULTS,
+                        VAR_DR_RESULTS,
+                        "Please validate your input data")
                     .build())
             .addModifiers(Modifier.PRIVATE)
             .returns(DryRunTransactionResult.class)
             .build();
     return GCPM_DRY_RUN;
+  }
+
+  private CodeBlock getParameterEncoding(List<ParameterSpec> params) {
+    return CodeBlock.join(
+        params.stream()
+            .map(
+                p -> {
+                  return this.datatypeEncodingHandler.encodeParameter(p.type, p.name);
+                })
+            .collect(Collectors.toList()),
+        ",");
   }
 
   /**
@@ -955,44 +1167,10 @@ public class ContraectGenerator {
       return IOUtils.toString(Paths.get("", filePath).toUri(), StandardCharsets.UTF_8.toString());
     } catch (IOException e) {
       throw new MojoExecutionException(
-          String.format("Cannot read contract from file %s", filePath), e);
+          CodegenUtil.getBaseErrorMessage(
+              CmpErrorCode.FAIL_READ_CONTRACT_FILE,
+              String.format("Cannot read contract from file %s", filePath),
+              Arrays.asList(Pair.with("Exception", e))));
     }
   }
-
-  /**
-   * get the return statement which intializes the resultType with the value
-   *
-   * @param classType
-   * @param result
-   * @return
-   */
-  private CodeBlock mapReturnTypeFromCall(Object classType, String result) {
-    return typeMapperList.stream()
-        .filter(t -> t.applies(classType))
-        .findFirst()
-        .orElse(new DefaultMapper())
-        .getReturnStatement(result);
-  }
-
-  /**
-   * maps aeternity type to java type
-   *
-   * @param classType
-   * @return
-   */
-  private Type mapClass(Object classType) {
-    return typeMapperList.stream()
-        .filter(t -> t.applies(classType))
-        .findFirst()
-        .orElse(new DefaultMapper())
-        .getJavaType();
-  }
-
-  private List<SophiaTypeMapper> typeMapperList =
-      Arrays.asList(
-          new BoolMapper(),
-          new BitsMapper(),
-          new BytesMapper(),
-          new StringMapper(),
-          new IntMapper());
 }

@@ -1,25 +1,37 @@
 package com.kryptokrauts.codegen.datatypes;
 
 import com.squareup.javapoet.CodeBlock;
-import java.lang.reflect.Type;
+import com.squareup.javapoet.TypeName;
+import org.apache.tuweni.bytes.Bytes;
 
-public class BytesMapper extends AbstractSophiaTypeMapper {
+public class BytesMapper extends AbstractDatatypeMapper {
 
-  @Override
-  public CodeBlock getReturnStatement(Object resultToReturn) {
-    // @TODO split result into list
-    return CodeBlock.builder()
-        .addStatement("return new $T($L)", Byte[].class, resultToReturn)
-        .build();
+  public BytesMapper(DatatypeMappingHandler resolveInstance) {
+    super(resolveInstance);
+  }
+
+  public boolean applies(TypeName type) {
+    return TypeName.get(Bytes.class).equals(type);
   }
 
   @Override
-  public Type getJavaType() {
-    return Byte[].class;
+  public boolean appliesToJSON(Object typeDefForResolvingInnerClass) {
+    return "bytes".equals(typeDefForResolvingInnerClass)
+        || "hash".equals(typeDefForResolvingInnerClass);
   }
 
   @Override
-  public boolean applies(Object type) {
-    return getType(type).startsWith("bytes");
+  public CodeBlock mapToReturnValue(TypeName type, String variableName) {
+    return CodeBlock.builder().add("$S+$L.toString()", "#", variableName).build();
+  }
+
+  @Override
+  public TypeName getTypeNameFromJSON(Object typeDefForResolvingInnerClass) {
+    return TypeName.get(Byte.class);
+  }
+
+  @Override
+  public CodeBlock encodeValue(TypeName type, String variableName) {
+    return CodeBlock.builder().add("#$L.toString()", variableName).build();
   }
 }

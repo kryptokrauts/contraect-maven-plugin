@@ -1,3 +1,6 @@
+include "List.aes"
+include "Library.aes"
+
 contract SophiaTypes =
 
     record company =
@@ -16,7 +19,35 @@ contract SophiaTypes =
          firstname: string,
          lastname: string }
          
+    entrypoint testHash(hashValue: hash) : hash =
+        hashValue
+    
+    entrypoint testBytes(bytesValue: bytes(4)) : bytes(4) =
+        bytesValue
+    
+    stateful payable entrypoint testPayableString(stringValue: string) : string =
+        stringValue
+    
+    entrypoint testListListMap(mapValue: list(list(map(int, int)))) : list(list(map(int, int))) =
+        mapValue
+    
+    entrypoint testCompanyAddress(companyAddressValue: companyAddress) : companyAddress =
+        companyAddressValue
+        
+    entrypoint testCompany(companyValue: company) : company =
+        companyValue
+        
+    entrypoint testEmployee(employeeValue: employee) : employee =
+        employeeValue
+       
+    entrypoint testSingle(singleValue: int) : (int) =        
+        singleValue
+        
+    entrypoint testTuple(tupleValue: int * bool) : (int * bool) =
+        tupleValue
+         
     entrypoint testInt(intValue: int) : int =
+    	//Library.inc(intValue)
         intValue
 
     entrypoint testAddress(addressValue: address) : address =
@@ -28,13 +59,14 @@ contract SophiaTypes =
     entrypoint testBits(bitsValue: bits) : bits =
         bitsValue
 
-    entrypoint testBytes(bytesValue: bytes(64)) : bytes(64) =
-        bytesValue
-
     entrypoint testString(stringValue: string) : string =
         stringValue
+        
+    entrypoint testListString(listStringValue: list(string)) : list(string) =
+        listStringValue
 
     entrypoint testListInt(listIntValue: list(int)) : list(int) =
+    	List.is_empty(listIntValue)
         listIntValue
 
     entrypoint testListAddressInt(listAddressIntValue: list(address * int)) : list(address * int) =
@@ -46,11 +78,14 @@ contract SophiaTypes =
     entrypoint testMapStringAddress(mapStringAddressValue: map(string, address)) : map(string, address) =
         mapStringAddressValue
 
-    entrypoint testOption(optionValue: option('a)) : option('a) =
+    entrypoint testOption(optionValue: option(int)) : option(int) =
         optionValue
-
-    entrypoint testHash(hashValue: hash) : hash =
-        hashValue
+        
+    entrypoint testOptionStr(optionValue: option(string)) : option(string) =
+        optionValue
+        
+    entrypoint testOptionList(optionValue: option(list(int))) : option(list(int)) =
+        optionValue
 
     entrypoint testSignature(signatureValue: signature) : signature =
         signatureValue

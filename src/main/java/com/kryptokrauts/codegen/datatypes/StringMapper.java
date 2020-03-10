@@ -1,22 +1,34 @@
 package com.kryptokrauts.codegen.datatypes;
 
 import com.squareup.javapoet.CodeBlock;
-import java.lang.reflect.Type;
+import com.squareup.javapoet.TypeName;
 
-public class StringMapper extends AbstractSophiaTypeMapper {
+public class StringMapper extends AbstractDatatypeMapper {
 
-  @Override
-  public CodeBlock getReturnStatement(Object resultToReturn) {
-    return CodeBlock.builder().addStatement("return $L.toString()", resultToReturn).build();
+  public StringMapper(DatatypeMappingHandler resolveInstance) {
+    super(resolveInstance);
+  }
+
+  public boolean applies(TypeName type) {
+    return TypeName.get(String.class).equals(type);
   }
 
   @Override
-  public Type getJavaType() {
-    return String.class;
+  public boolean appliesToJSON(Object typeDefForResolvingInnerClass) {
+    return "string".equals(typeDefForResolvingInnerClass);
+  }
+
+  public CodeBlock encodeValue(TypeName type, String variableName) {
+    return CodeBlock.builder().add("$S+$L+$S", "\"", variableName, "\"").build();
   }
 
   @Override
-  public boolean applies(Object type) {
-    return "string".equalsIgnoreCase(getType(type));
+  public CodeBlock mapToReturnValue(TypeName type, String variableName) {
+    return CodeBlock.builder().add("$L.toString()", variableName).build();
+  }
+
+  @Override
+  public TypeName getTypeNameFromJSON(Object type) {
+    return TypeName.get(String.class);
   }
 }

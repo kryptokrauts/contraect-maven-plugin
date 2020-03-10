@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.kryptokrauts</groupId>
   <artifactId>contraect-maven-plugin</artifactId>
-  <version>0.9.1</version>
+  <version>1.0.0-SNAPSHOT</version>
   <packaging>maven-plugin</packaging>
 
   <url>https://github.com/kryptokrauts/contraect-maven-plugin</url>
@@ -21,6 +21,12 @@
       <url>https://spdx.org/licenses/ISC.html</url>
     </license>
   </licenses>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.target>1.8</maven.compiler.target>
+    <maven.compiler.source>1.8</maven.compiler.source>
+  </properties>
 
   <developers>
     <developer>
@@ -41,7 +47,7 @@
     <dependency>
       <groupId>com.kryptokrauts</groupId>
       <artifactId>aepp-sdk-java</artifactId>
-      <version>2.1.0</version>
+      <version>2.2.1</version>
       <scope>compile</scope>
     </dependency>
     <dependency>
@@ -60,7 +66,7 @@
     <dependency>
       <groupId>org.apache.maven</groupId>
       <artifactId>maven-plugin-api</artifactId>
-      <version>3.6.2</version>
+      <version>3.6.3</version>
     </dependency>
     <!-- dependencies to annotations -->
     <dependency>
@@ -87,6 +93,17 @@
       <version>5.4.2</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.javatuples</groupId>
+      <artifactId>javatuples</artifactId>
+      <version>1.2</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>1.1.11</version>
+    </dependency>
   </dependencies>
 
   <build>
@@ -108,7 +125,10 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.22.2</version>
+        <version>3.0.0-M4</version>
+        <configuration>
+          <useSystemClassLoader>false</useSystemClassLoader>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
