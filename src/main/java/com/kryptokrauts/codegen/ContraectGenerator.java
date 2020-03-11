@@ -118,7 +118,9 @@ public class ContraectGenerator {
   public void generate(String aesFile) throws MojoExecutionException {
     String aesContent = readFile(aesFile);
     Map<String, String> includes = parseIncludes(aesFile);
-    includes.replaceAll((k, v) -> v.replace("\\\"", "\""));
+    if (includes != null) {
+      includes.replaceAll((k, v) -> v.replace("\\\"", "\""));
+    }
     ACIResult abiContent =
         codegenConfiguration
             .getAeternityService()
@@ -241,7 +243,10 @@ public class ContraectGenerator {
                       .initializer("$S", aesContent)
                       .build())
               .addField(
-                  FieldSpec.builder(Map.class, GCV_AES_INCLUDES, Modifier.PRIVATE)
+                  FieldSpec.builder(
+                          ParameterizedTypeName.get(Map.class, String.class, String.class),
+                          GCV_AES_INCLUDES,
+                          Modifier.PRIVATE)
                       .initializer(
                           "$T.of($L)",
                           ImmutableMap.class,
@@ -483,6 +488,7 @@ public class ContraectGenerator {
                 VAR_DR_RESULT,
                 GCV_AES_INCLUDES)
             .beginControlFlow("if($S.equalsIgnoreCase($L.getResult()))", "ok", VAR_DR_RESULT)
+            .add(checkResultCodeblock(VAR_RESULT_OBJECT, VAR_DR_RESULT, functionName))
             .build();
 
     /** stateful call - add gas and gasPrice to transaction and post */
@@ -579,7 +585,6 @@ public class ContraectGenerator {
       boolean isStateful,
       boolean isVoid) {
     String VAR_UNWRAPPED_RESULT_OBJECT = "unwrappedResultObject";
-    String VAR_RESULT_JSON_MAP = "resultJSONMap";
 
     CodeBlock mappedToReturnValue =
         this.datatypeEncodingHandler.mapToReturnValue(resultType, VAR_UNWRAPPED_RESULT_OBJECT);
@@ -604,6 +609,15 @@ public class ContraectGenerator {
     return CodeBlock.builder()
         .addStatement(
             "$T $L = $L.getResult()", Object.class, VAR_UNWRAPPED_RESULT_OBJECT, VAR_RESULT_OBJECT)
+        .add(checkResultCodeblock(VAR_RESULT_OBJECT, VAR_UNWRAPPED_RESULT_OBJECT, functionName))
+        .add(returnStatement)
+        .build();
+  }
+
+  private CodeBlock checkResultCodeblock(
+      String VAR_RESULT_OBJECT, String VAR_UNWRAPPED_RESULT_OBJECT, String functionName) {
+    String VAR_RESULT_JSON_MAP = "resultJSONMap";
+    return CodeBlock.builder()
         .beginControlFlow("if($L instanceof $T)", VAR_UNWRAPPED_RESULT_OBJECT, Map.class)
         .addStatement(
             "$T $L = $T.mapFrom($L)",
@@ -617,13 +631,23 @@ public class ContraectGenerator {
             "throw new $T($T.format($S,$S,$L.getValue($S)))",
             AException.class,
             String.class,
-            "An error occured calling function %s: %s",
+            "Calling function %s was aborted due to %s",
             functionName,
             VAR_RESULT_JSON_MAP,
             codegenConfiguration.getResultAbortKey())
         .endControlFlow()
+        .beginControlFlow(
+            "if($L.containsKey($S))", VAR_RESULT_JSON_MAP, codegenConfiguration.getResultErrorKey())
+        .addStatement(
+            "throw new $T($T.format($S,$S,$L.getValue($S)))",
+            AException.class,
+            String.class,
+            "An error occured calling function %s: %s",
+            functionName,
+            VAR_RESULT_JSON_MAP,
+            codegenConfiguration.getResultErrorKey())
         .endControlFlow()
-        .add(returnStatement)
+        .endControlFlow()
         .build();
   }
 
