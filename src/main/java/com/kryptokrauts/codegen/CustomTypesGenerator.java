@@ -82,10 +82,9 @@ public class CustomTypesGenerator {
     Object fieldDefinition =
         typeDefinition.getValue(abiJsonConfiguration.getCustomTypeTypedefElement());
     if (fieldDefinition instanceof JsonObject) {
-      JsonArray record =
-          typeDefinition
-              .getJsonObject(abiJsonConfiguration.getCustomTypeTypedefElement())
-              .getJsonArray(CustomType.RECORD);
+      JsonObject typedef =
+          typeDefinition.getJsonObject(abiJsonConfiguration.getCustomTypeTypedefElement());
+      JsonArray record = typedef.getJsonArray(CustomType.RECORD);
       // if record is defined, it is a custom type
       if (record != null) {
         fields =
@@ -103,6 +102,13 @@ public class CustomTypesGenerator {
                       return Pair.with(name, type);
                     })
                 .collect(Collectors.toList());
+      }
+      // its a type alias
+      else if (typedef != null) {
+        String name =
+            typeDefinition.getString(abiJsonConfiguration.getCustomTypeTypedefNameElement());
+        TypeName type = this.datatypeEncodingHandler.getTypeNameFromJSON(typedef);
+        fields.add(Pair.with(name, type));
       }
     } else if (fieldDefinition instanceof String) {
       fields.add(Pair.with(fieldDefinition.toString(), TypeName.get(String.class)));

@@ -3,9 +3,9 @@ package com.kryptokrauts.codegen.datatypes;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.TypeName;
 
-public class BoolEncoder extends AbstractDatatypeMapper {
+public class BoolMapper extends AbstractDatatypeMapper {
 
-  public BoolEncoder(DatatypeMappingHandler resolveInstance) {
+  public BoolMapper(DatatypeMappingHandler resolveInstance) {
     super(resolveInstance);
   }
 

@@ -5,6 +5,8 @@ import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.TypeName;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * this class handles the recursive resolution of the applying mapper for the given type
@@ -19,8 +21,12 @@ public class DatatypeMappingHandler {
 
   protected CustomTypesGenerator customTypesGenerator;
 
+  private Map<String, Object> aliasMap;
+
   public DatatypeMappingHandler(
-      String generatedTypesPackageName, String generatedContractClassName) {
+      String generatedTypesPackageName,
+      String generatedContractClassName,
+      Map<String, Object> aliasMap) {
     this.datatypeHandlers =
         Arrays.asList(
             new StringMapper(this),
@@ -30,9 +36,10 @@ public class DatatypeMappingHandler {
             new CustomTypeMapper(this),
             new MapMapper(this),
             new VoidMapper(this),
-            new BoolEncoder(this),
+            new BoolMapper(this),
             new TupleMapper(this));
     this.generatedContractClassName = generatedContractClassName;
+    this.aliasMap = aliasMap;
   }
 
   public void setCustomTypesGenerator(CustomTypesGenerator customTypesGenerator) {
@@ -63,5 +70,18 @@ public class DatatypeMappingHandler {
         .filter(t -> t.appliesToJSON(jsonTypeDef))
         .findFirst()
         .orElse(new DefaultDatatypeMapper(this));
+  }
+
+  public Object checkForAlias(Object jsonTypeDef) {
+    AtomicReference<Object> typeDef = new AtomicReference<>(jsonTypeDef);
+    aliasMap
+        .keySet()
+        .forEach(
+            aliasName -> {
+              if (aliasName.equals(typeDef.get())) {
+                typeDef.set(aliasMap.get(aliasName));
+              }
+            });
+    return typeDef.get();
   }
 }
