@@ -18,7 +18,6 @@ import com.kryptokrauts.aeternity.sdk.service.transaction.domain.PostTransaction
 import com.kryptokrauts.aeternity.sdk.service.transaction.type.model.ContractCallTransactionModel;
 import com.kryptokrauts.aeternity.sdk.service.transaction.type.model.ContractCreateTransactionModel;
 import com.kryptokrauts.codegen.datatypes.DatatypeMappingHandler;
-import com.kryptokrauts.codegen.datatypes.defaults.CustomType;
 import com.kryptokrauts.codegen.maven.ABIJsonConfiguration;
 import com.kryptokrauts.codegen.maven.CodegenConfiguration;
 import com.squareup.javapoet.ClassName;
@@ -206,32 +205,6 @@ public class ContraectGenerator {
     }
     // ignore library
     return null;
-  }
-
-  private Map<String, Object> parseAliasMap(JsonObject root) {
-    Map<String, Object> aliasMap = new HashMap<>();
-    Object typedef = root.getValue(abiJsonConfiguration.getCustomTypeElement());
-    String contractName = root.getString(abiJsonConfiguration.getContractNameElement());
-    if (typedef instanceof JsonArray) {
-      JsonArray types = root.getJsonArray(abiJsonConfiguration.getCustomTypeElement());
-      types.forEach(
-          type -> {
-            JsonObject typeObj = (JsonObject) type;
-            // has no record entry in typedef -> alias
-            if (!typeObj
-                .getJsonObject(abiJsonConfiguration.getCustomTypeTypedefElement())
-                .containsKey(CustomType.RECORD)) {
-              String typeName =
-                  typeObj.getString(abiJsonConfiguration.getCustomTypeTypedefNameElement());
-              Object typeValue =
-                  typeObj.getJsonObject(abiJsonConfiguration.getCustomTypeTypedefElement());
-
-              aliasMap.put(contractName + "." + typeName, typeValue);
-              aliasMap.put(typeName, typeValue);
-            }
-          });
-    }
-    return aliasMap;
   }
 
   /**
