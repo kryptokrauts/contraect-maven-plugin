@@ -78,6 +78,7 @@ public class CustomTypesGenerator {
   }
 
   private TypeSpec generateCustomType(JsonObject typeDefinition) {
+    boolean isAlias = false;
     List<Pair<String, TypeName>> fields = new LinkedList<>();
     Object fieldDefinition =
         typeDefinition.getValue(abiJsonConfiguration.getCustomTypeTypedefElement());
@@ -105,6 +106,7 @@ public class CustomTypesGenerator {
       }
       // its a type alias
       else if (typedef != null) {
+        isAlias = true;
         String name =
             typeDefinition.getString(abiJsonConfiguration.getCustomTypeTypedefNameElement());
         TypeName type = this.datatypeEncodingHandler.getTypeNameFromJSON(typedef);
@@ -138,7 +140,7 @@ public class CustomTypesGenerator {
         .addMethod(generateEncodeValueMethod(fields, name))
         .addMethod(generateToString(fields))
         .addMethod(generateEquals(fields, name))
-        .addMethod(generateMapToReturnValueMethod(name))
+        .addMethod(generateMapToReturnValueMethod(fields, name, isAlias))
         .build();
   }
 
@@ -177,30 +179,46 @@ public class CustomTypesGenerator {
         .build();
   }
 
-  private MethodSpec generateMapToReturnValueMethod(String customTypeName) {
-    CodeBlock returnValueLogic =
-        CodeBlock.builder()
-            .add(
-                "$T.mapFrom($L).mapTo($T.class)",
-                JsonObject.class,
-                MP_PARAM,
-                this.getClassName(customTypeName))
-            .build();
+  private MethodSpec generateMapToReturnValueMethod(
+      List<Pair<String, TypeName>> fields, String customTypeName, boolean isAlias) {
+    CodeBlock returnValueLogic;
+    if (isAlias) {
+      returnValueLogic =
+          CodeBlock.builder()
+              .addStatement(
+                  "return new $T($L)",
+                  this.getClassName(customTypeName),
+                  this.datatypeEncodingHandler.mapToReturnValue(
+                      fields.get(0).getValue1(), MP_PARAM))
+              .build();
+    } else {
+      returnValueLogic =
+          CodeBlock.builder()
+              .addStatement(
+                  "return $T.mapFrom($L).mapTo($T.class)",
+                  JsonObject.class,
+                  MP_PARAM,
+                  this.getClassName(customTypeName))
+              .build();
+    }
     // if it is a predefined class use this encoding logic
     if (INSTANCE_PREDEFINED_TYPES.get(customTypeName.toLowerCase()) != null) {
       returnValueLogic =
-          INSTANCE_PREDEFINED_TYPES
-              .get(customTypeName.toLowerCase())
-              .mapToReturnValueCodeblock(MP_PARAM);
+          CodeBlock.builder()
+              .add("return ")
+              .add(
+                  INSTANCE_PREDEFINED_TYPES
+                      .get(customTypeName.toLowerCase())
+                      .mapToReturnValueCodeblock(MP_PARAM))
+              .add(";")
+              .build();
     }
 
     return MethodSpec.methodBuilder(M_MAP_TO_RETURN_VALUE)
         .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
         .addParameter(TypeName.get(Object.class), MP_PARAM)
         .returns(this.getClassName(customTypeName))
-        .addCode("return ")
         .addCode(returnValueLogic)
-        .addCode(";")
         .build();
   }
 

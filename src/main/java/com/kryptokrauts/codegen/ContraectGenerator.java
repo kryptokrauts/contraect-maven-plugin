@@ -245,10 +245,9 @@ public class ContraectGenerator {
       String className =
           CodegenUtil.getUppercaseClassName(
               abiJson.getString(abiJsonConfiguration.getContractNameElement()));
-      Map<String, Object> aliasMap = parseAliasMap(abiJson);
 
       this.datatypeEncodingHandler =
-          new DatatypeMappingHandler(codegenConfiguration.getTargetPackage(), className, aliasMap);
+          new DatatypeMappingHandler(codegenConfiguration.getTargetPackage(), className);
       this.customTypesGenerator =
           new CustomTypesGenerator(this.datatypeEncodingHandler, this.abiJsonConfiguration);
 
@@ -448,13 +447,10 @@ public class ContraectGenerator {
         amount = ParameterSpec.builder(TypeName.get(BigInteger.class), VAR_CC_AMOUNT).build();
       }
     }
-
-    Object functionReturnType =
-        this.datatypeEncodingHandler.checkForAlias(
-            functionDescription.getValue(abiJsonConfiguration.getFunctionReturnTypeElement()));
-
     // resolve the return type
-    TypeName payloadType = this.datatypeEncodingHandler.getTypeNameFromJSON(functionReturnType);
+    TypeName payloadType =
+        this.datatypeEncodingHandler.getTypeNameFromJSON(
+            functionDescription.getValue(abiJsonConfiguration.getFunctionReturnTypeElement()));
     boolean isVoid = TypeName.get(Void.class).equals(payloadType.box());
 
     TypeName returnType = payloadType;
@@ -671,12 +667,10 @@ public class ContraectGenerator {
             .map(
                 param -> {
                   JsonObject paramMap = JsonObject.mapFrom(param);
-                  Object paramType =
-                      this.datatypeEncodingHandler.checkForAlias(
-                          abiJsonConfiguration.getFunctionArgumentTypeElement());
                   return ParameterSpec.builder(
                           this.datatypeEncodingHandler.getTypeNameFromJSON(
-                              paramMap.getValue(paramType.toString())),
+                              paramMap.getValue(
+                                  abiJsonConfiguration.getFunctionArgumentTypeElement())),
                           replaceInvalidChars(
                               paramMap.getString(
                                   abiJsonConfiguration.getFunctionArgumentNameElement())))
