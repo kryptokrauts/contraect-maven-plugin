@@ -11,7 +11,7 @@ The **contraect-maven-plugin** is a community developed maven plugin to generate
 The generated classes make use of the [aepp-sdk-java](https://github.com/kryptokrauts/aepp-sdk-java) and provide methods to deploy contracts and call the respective entrypoint functions.
 
 ## Limitations
-- [#23](../../issues/23) type aliases aren't supported yet
+- datatype tuple > 10 is not supported
 
 ## Latest release
  [ ![Download](https://api.bintray.com/packages/kryptokrauts/maven/contraect-maven-plugin/images/download.svg) ](https://bintray.com/kryptokrauts/maven/contraect-maven-plugin/_latestVersion)
