@@ -4,7 +4,7 @@
 
 Release v1.0.0 provides full support of complex data and return types, type alias and includes of other contracts and libraries. Also the result mapping of contract calls was improved and adapted to the v2.2.1 of the aepp-sdk-java. A unified error handling was introduced, please refer to the documentation.
 
-- [#4](../../../issues/4) support of complex datatypes
+- [#1](../../../issues/1) support of complex datatypes
 - [#4](../../../issues/4) support of custom types
 - [#6](../../../issues/6) handle revert messages properly
 - [#20](../../../issues/20) evaluate impact of including other contracts
