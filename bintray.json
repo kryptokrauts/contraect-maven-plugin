@@ -22,17 +22,17 @@
     "public_stats": true
   },
   "version": {
-    "name": "0.9.1",
+    "name": "1.0.0",
     "gpgSign": false
   },
   "files": [
     {
       "includePattern": "target/(.*).jar",
-      "uploadPattern": "/com/kryptokrauts/contraect-maven-plugin/0.9.1/$1.jar"
+      "uploadPattern": "/com/kryptokrauts/contraect-maven-plugin/1.0.0/$1.jar"
     },
     {
       "includePattern": "pom.xml",
-      "uploadPattern": "/com/kryptokrauts/contraect-maven-plugin/0.9.1/contraect-maven-plugin-0.9.1.pom"
+      "uploadPattern": "/com/kryptokrauts/contraect-maven-plugin/1.0.0/contraect-maven-plugin-1.0.0.pom"
     }
   ],
   "publish": true

@@ -48,8 +48,7 @@ jobs:
           key: $BINTRAY_API_KEY
           skip_cleanup: true
         - provider: releases
-          api_key:
-            secure: $GITHUB_OAUTH_TOKEN
+          api_key: $GITHUB_OAUTH_TOKEN
           body: "Please take a look into the [changelog](https://github.com/kryptokrauts/contraect-maven-plugin/blob/${TAG}/docs/changelog.md) for more information about the recent changes."
           skip_cleanup: true
           file_glob: true
