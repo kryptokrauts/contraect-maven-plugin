@@ -78,14 +78,14 @@ public class CustomTypesGenerator {
   }
 
   private TypeSpec generateCustomType(JsonObject typeDefinition) {
+    boolean isAlias = false;
     List<Pair<String, TypeName>> fields = new LinkedList<>();
     Object fieldDefinition =
         typeDefinition.getValue(abiJsonConfiguration.getCustomTypeTypedefElement());
     if (fieldDefinition instanceof JsonObject) {
-      JsonArray record =
-          typeDefinition
-              .getJsonObject(abiJsonConfiguration.getCustomTypeTypedefElement())
-              .getJsonArray(CustomType.RECORD);
+      JsonObject typedef =
+          typeDefinition.getJsonObject(abiJsonConfiguration.getCustomTypeTypedefElement());
+      JsonArray record = typedef.getJsonArray(CustomType.RECORD);
       // if record is defined, it is a custom type
       if (record != null) {
         fields =
@@ -103,6 +103,14 @@ public class CustomTypesGenerator {
                       return Pair.with(name, type);
                     })
                 .collect(Collectors.toList());
+      }
+      // its a type alias
+      else if (typedef != null) {
+        isAlias = true;
+        String name =
+            typeDefinition.getString(abiJsonConfiguration.getCustomTypeTypedefNameElement());
+        TypeName type = this.datatypeEncodingHandler.getTypeNameFromJSON(typedef);
+        fields.add(Pair.with(name, type));
       }
     } else if (fieldDefinition instanceof String) {
       fields.add(Pair.with(fieldDefinition.toString(), TypeName.get(String.class)));
@@ -132,7 +140,7 @@ public class CustomTypesGenerator {
         .addMethod(generateEncodeValueMethod(fields, name))
         .addMethod(generateToString(fields))
         .addMethod(generateEquals(fields, name))
-        .addMethod(generateMapToReturnValueMethod(name))
+        .addMethod(generateMapToReturnValueMethod(fields, name, isAlias))
         .build();
   }
 
@@ -171,30 +179,46 @@ public class CustomTypesGenerator {
         .build();
   }
 
-  private MethodSpec generateMapToReturnValueMethod(String customTypeName) {
-    CodeBlock returnValueLogic =
-        CodeBlock.builder()
-            .add(
-                "$T.mapFrom($L).mapTo($T.class)",
-                JsonObject.class,
-                MP_PARAM,
-                this.getClassName(customTypeName))
-            .build();
+  private MethodSpec generateMapToReturnValueMethod(
+      List<Pair<String, TypeName>> fields, String customTypeName, boolean isAlias) {
+    CodeBlock returnValueLogic;
+    if (isAlias) {
+      returnValueLogic =
+          CodeBlock.builder()
+              .addStatement(
+                  "return new $T($L)",
+                  this.getClassName(customTypeName),
+                  this.datatypeEncodingHandler.mapToReturnValue(
+                      fields.get(0).getValue1(), MP_PARAM))
+              .build();
+    } else {
+      returnValueLogic =
+          CodeBlock.builder()
+              .addStatement(
+                  "return $T.mapFrom($L).mapTo($T.class)",
+                  JsonObject.class,
+                  MP_PARAM,
+                  this.getClassName(customTypeName))
+              .build();
+    }
     // if it is a predefined class use this encoding logic
     if (INSTANCE_PREDEFINED_TYPES.get(customTypeName.toLowerCase()) != null) {
       returnValueLogic =
-          INSTANCE_PREDEFINED_TYPES
-              .get(customTypeName.toLowerCase())
-              .mapToReturnValueCodeblock(MP_PARAM);
+          CodeBlock.builder()
+              .add("return ")
+              .add(
+                  INSTANCE_PREDEFINED_TYPES
+                      .get(customTypeName.toLowerCase())
+                      .mapToReturnValueCodeblock(MP_PARAM))
+              .add(";")
+              .build();
     }
 
     return MethodSpec.methodBuilder(M_MAP_TO_RETURN_VALUE)
         .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
         .addParameter(TypeName.get(Object.class), MP_PARAM)
         .returns(this.getClassName(customTypeName))
-        .addCode("return ")
         .addCode(returnValueLogic)
-        .addCode(";")
         .build();
   }
 

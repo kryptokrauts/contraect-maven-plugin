@@ -425,7 +425,6 @@ public class ContraectGenerator {
         amount = ParameterSpec.builder(TypeName.get(BigInteger.class), VAR_CC_AMOUNT).build();
       }
     }
-
     // resolve the return type
     TypeName payloadType =
         this.datatypeEncodingHandler.getTypeNameFromJSON(

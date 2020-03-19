@@ -30,7 +30,7 @@ public class DatatypeMappingHandler {
             new CustomTypeMapper(this),
             new MapMapper(this),
             new VoidMapper(this),
-            new BoolEncoder(this),
+            new BoolMapper(this),
             new TupleMapper(this));
     this.generatedContractClassName = generatedContractClassName;
   }
