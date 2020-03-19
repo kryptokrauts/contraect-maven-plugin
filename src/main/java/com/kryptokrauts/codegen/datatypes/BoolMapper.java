@@ -1,24 +1,37 @@
 package com.kryptokrauts.codegen.datatypes;
 
 import com.squareup.javapoet.CodeBlock;
-import java.lang.reflect.Type;
+import com.squareup.javapoet.TypeName;
 
-public class BoolMapper extends AbstractSophiaTypeMapper {
+public class BoolMapper extends AbstractDatatypeMapper {
+
+  public BoolMapper(DatatypeMappingHandler resolveInstance) {
+    super(resolveInstance);
+  }
+
+  public boolean applies(TypeName type) {
+    return TypeName.get(Boolean.class).equals(type);
+  }
 
   @Override
-  public CodeBlock getReturnStatement(Object resultToReturn) {
+  public boolean appliesToJSON(Object typeDefForResolvingInnerClass) {
+    return "bool".equals(typeDefForResolvingInnerClass);
+  }
+
+  @Override
+  public CodeBlock mapToReturnValue(TypeName type, String variableName) {
     return CodeBlock.builder()
-        .addStatement("return $T.valueOf($L.toString())", Boolean.class, resultToReturn)
+        .add("$T.valueOf($L.toString())", Boolean.class, variableName)
         .build();
   }
 
   @Override
-  public Type getJavaType() {
-    return Boolean.class;
+  public TypeName getTypeNameFromJSON(Object type) {
+    return TypeName.BOOLEAN.box();
   }
 
   @Override
-  public boolean applies(Object type) {
-    return "bool".equalsIgnoreCase(getType(type));
+  public CodeBlock encodeValue(TypeName type, String variableName) {
+    return CodeBlock.builder().add("$L.toString()", variableName).build();
   }
 }

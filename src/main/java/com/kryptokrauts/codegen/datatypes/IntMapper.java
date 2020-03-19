@@ -1,25 +1,36 @@
 package com.kryptokrauts.codegen.datatypes;
 
 import com.squareup.javapoet.CodeBlock;
-import java.lang.reflect.Type;
+import com.squareup.javapoet.TypeName;
 import java.math.BigInteger;
 
-public class IntMapper extends AbstractSophiaTypeMapper {
+public class IntMapper extends AbstractDatatypeMapper {
 
-  @Override
-  public CodeBlock getReturnStatement(Object resultToReturn) {
-    return CodeBlock.builder()
-        .addStatement("return new $T($L.toString())", BigInteger.class, resultToReturn)
-        .build();
+  public IntMapper(DatatypeMappingHandler resolveInstance) {
+    super(resolveInstance);
+  }
+
+  public boolean applies(TypeName type) {
+    return TypeName.get(BigInteger.class).equals(type);
   }
 
   @Override
-  public Type getJavaType() {
-    return BigInteger.class;
+  public boolean appliesToJSON(Object typeDefForResolvingInnerClass) {
+    return "int".equals(typeDefForResolvingInnerClass);
   }
 
   @Override
-  public boolean applies(Object type) {
-    return "int".equalsIgnoreCase(getType(type));
+  public CodeBlock mapToReturnValue(TypeName type, String variableName) {
+    return CodeBlock.builder().add("new $T($L.toString())", BigInteger.class, variableName).build();
+  }
+
+  @Override
+  public TypeName getTypeNameFromJSON(Object typeDefForResolvingInnerClass) {
+    return TypeName.get(BigInteger.class);
+  }
+
+  @Override
+  public CodeBlock encodeValue(TypeName type, String variableName) {
+    return CodeBlock.builder().add("$L.toString()", variableName).build();
   }
 }
