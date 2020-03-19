@@ -2,8 +2,9 @@
 
 ## [v1.0.0](https://github.com/kryptokrauts/contraect-maven-plugin/releases/tag/v1.0.0)
 
-Release v1.0.0 provides full support of complex data and return types, type alias and includes of other contracts and libraries. Also the result mapping of contract calls was improved and adapted to the v2.2.1 of the aepp-sdk-java. A unified error handling was introduced, please refer to the documentation.
+This release provides full support of complex data and return types, type aliases and includes of other contracts and libraries. Also the result mapping of contract calls was improved and adapted to the [v2.2.1](https://github.com/kryptokrauts/aepp-sdk-java/releases/tag/v2.2.1) of the [aepp-sdk-java](https://github.com/kryptokrauts/aepp-sdk-java). A unified error handling was introduced, please refer to the [documentation](https://kryptokrauts.gitbook.io/contraect-maven-plugin/use-the-plugin/plugin-execution/error-codes).
 
+### Enhancements
 - [#1](../../../issues/1) support of complex datatypes
 - [#4](../../../issues/4) support of custom types
 - [#6](../../../issues/6) handle revert messages properly
@@ -15,7 +16,8 @@ Release v1.0.0 provides full support of complex data and return types, type alia
 
 ## [v0.9.1](https://github.com/kryptokrauts/contraect-maven-plugin/releases/tag/v0.9.1)
 
-- [#16](../../../issues/16) invalid deploy-method of generated class when init-function has params bug
+### Fixes
+- [#16](../../../issues/16) invalid deploy-method of generated class when init-function has params
 
 ## [v0.9.0](https://github.com/kryptokrauts/contraect-maven-plugin/releases/tag/v0.9.0)
 
