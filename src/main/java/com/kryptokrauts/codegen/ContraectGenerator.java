@@ -614,12 +614,16 @@ public class ContraectGenerator {
   }
 
   private CodeBlock checkResultCodeblock(
-      String VAR_RESULT_OBJECT, String VAR_UNWRAPPED_RESULT_OBJECT, String functionName) {
+      String VAR_UNWRAPPED_RESULT_OBJECT, String VAR_RESULT_OBJECT, String functionName) {
     String VAR_RESULT_JSON_MAP = "resultJSONMap";
     return CodeBlock.builder()
-        .beginControlFlow("if($L instanceof $T)", VAR_UNWRAPPED_RESULT_OBJECT, Map.class)
+        .beginControlFlow(
+            "if($L != null && $L.getResult() instanceof $T)",
+            VAR_UNWRAPPED_RESULT_OBJECT,
+            VAR_UNWRAPPED_RESULT_OBJECT,
+            Map.class)
         .addStatement(
-            "$T $L = $T.mapFrom($L)",
+            "$T $L = $T.mapFrom($L.getResult())",
             JsonObject.class,
             VAR_RESULT_JSON_MAP,
             JsonObject.class,
