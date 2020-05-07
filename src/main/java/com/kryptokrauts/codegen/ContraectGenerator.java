@@ -928,6 +928,7 @@ public class ContraectGenerator {
                         VAR_MINED_TX,
                         GCV_AETERNITY_SERVICE,
                         MP_TXHASH)
+                    .beginControlFlow("if($L != null)", VAR_MINED_TX)
                     .beginControlFlow("if($L.getBlockHeight().intValue() > 1)", VAR_MINED_TX)
                     .addStatement(
                         "$L.debug($S+$L)",
@@ -956,6 +957,14 @@ public class ContraectGenerator {
                         "e.getMessage()")
                     .endControlFlow()
                     .addStatement("$L++", VAR_DONE_TRIALS)
+                    .endControlFlow()
+                    .nextControlFlow("else")
+                    .addStatement(
+                        "throw new $T($T.format($S,$L))",
+                        AException.class,
+                        String.class,
+                        "An error occured getting transaction for hash - object is null, aborting",
+                        MP_TXHASH)
                     .endControlFlow()
                     .endControlFlow()
                     .beginControlFlow("if($L == -1)", VAR_BLOCK_HEIGHT)
