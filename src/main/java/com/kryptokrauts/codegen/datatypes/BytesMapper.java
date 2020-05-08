@@ -1,5 +1,6 @@
 package com.kryptokrauts.codegen.datatypes;
 
+import com.kryptokrauts.codegen.datatypes.defaults.CustomType;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.TypeName;
 import org.apache.tuweni.bytes.Bytes;
@@ -16,8 +17,10 @@ public class BytesMapper extends AbstractDatatypeMapper {
 
   @Override
   public boolean appliesToJSON(Object typeDefForResolvingInnerClass) {
-    return "bytes".equals(typeDefForResolvingInnerClass)
-        || "hash".equals(typeDefForResolvingInnerClass);
+
+    return CustomType.BYTES_TYPE.equals(typeDefForResolvingInnerClass)
+        || CustomType.HASH_TYPE.equals(typeDefForResolvingInnerClass)
+        || CustomType.SIGNATURE_TYPE.equals(typeDefForResolvingInnerClass);
   }
 
   @Override

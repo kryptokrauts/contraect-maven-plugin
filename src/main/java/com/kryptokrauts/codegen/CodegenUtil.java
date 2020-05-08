@@ -27,7 +27,11 @@ public class CodegenUtil {
           + "            __/ | |                                                               \r\n"
           + "           |___/|_|\r\n";
 
-  public static final String LICENSE_HEADER = "\r\nISC License\r\n" + "\r\nCopyright (c) 2020\r\n";
+  public static final String LICENSE_HEADER =
+      "\r\nISC License\r\n"
+          + "\r\nCopyright (c) "
+          + new SimpleDateFormat("yyyy").format(new Date())
+          + "\r\n";
 
   public static final String LICENSE =
       "\r\nPermission to use, copy, modify, and/or distribute this software for any\r\n"

@@ -18,6 +18,8 @@ public interface CustomType {
 
   public static final String HASH_TYPE = "hash";
 
+  public static final String SIGNATURE_TYPE = "signature";
+
   public JsonObject getTypeDefinition(ABIJsonConfiguration abiJsonConfiguration);
 
   public CodeBlock encodeValueCodeblock(String MP_PARAM);

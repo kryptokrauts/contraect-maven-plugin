@@ -6,6 +6,7 @@ import com.kryptokrauts.codegen.datatypes.defaults.AddressType;
 import com.kryptokrauts.codegen.datatypes.defaults.BytesType;
 import com.kryptokrauts.codegen.datatypes.defaults.CustomType;
 import com.kryptokrauts.codegen.datatypes.defaults.HashType;
+import com.kryptokrauts.codegen.datatypes.defaults.SignatureType;
 import com.kryptokrauts.codegen.maven.ABIJsonConfiguration;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
@@ -51,7 +52,12 @@ public class CustomTypesGenerator {
 
   public static final Map<String, CustomType> PREDEFINED_TYPES =
       ImmutableMap.of(
-          CustomType.ADDRESS_TYPE, new AddressType(), CustomType.HASH_TYPE, new HashType());
+          CustomType.ADDRESS_TYPE,
+          new AddressType(),
+          CustomType.HASH_TYPE,
+          new HashType(),
+          CustomType.SIGNATURE_TYPE,
+          new SignatureType());
 
   private Map<String, CustomType> INSTANCE_PREDEFINED_TYPES = new HashMap<>(PREDEFINED_TYPES);
 
