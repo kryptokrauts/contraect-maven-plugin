@@ -42,7 +42,7 @@ public abstract class AbstractDatatypeMapper implements DatatypeMapper {
    *
    * @param variableName also replace dots to omit compiler errors because they indicate function
    *     calls
-   * @return
+   * @return unique variable name
    */
   protected String getUniqueVariableName(String variableName) {
     return "_"
