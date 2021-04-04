@@ -194,6 +194,12 @@
     </plugins>
   </build>
 
+  <scm>
+    <connection>scm:git:https://github.com/kryptokrauts/contraect-maven-plugin.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/kryptokrauts/contraect-maven-plugin.git</developerConnection>
+    <url>https://github.com/kryptokrauts/contraect-maven-plugin</url>
+  </scm>
+
   <distributionManagement>
     <snapshotRepository>
       <id>ossrh</id>
