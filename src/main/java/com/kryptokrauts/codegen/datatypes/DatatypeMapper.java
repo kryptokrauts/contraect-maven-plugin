@@ -13,42 +13,42 @@ public interface DatatypeMapper {
   /**
    * validate if mapper applies to handle given type
    *
-   * @param type
-   * @return
+   * @param type one of {@link TypeName}
+   * @return true|false
    */
-  public boolean applies(TypeName type);
+  boolean applies(TypeName type);
 
   /**
    * encodeValue javacode
    *
-   * @param type
-   * @param variableName
-   * @return
+   * @param type one of {@link TypeName}
+   * @param variableName name of the variable
+   * @return instance of {@link CodeBlock}
    */
-  public CodeBlock encodeValue(TypeName type, String variableName);
+  CodeBlock encodeValue(TypeName type, String variableName);
 
   /**
    * map result back to java object
    *
-   * @param type
-   * @param variableName
-   * @return
+   * @param type one of {@link TypeName}
+   * @param variableName name of the variable
+   * @return instance of {@link CodeBlock}
    */
-  public CodeBlock mapToReturnValue(TypeName type, String variableName);
+  CodeBlock mapToReturnValue(TypeName type, String variableName);
 
   /**
    * check if
    *
-   * @param typeDefForResolvingInnerClass
-   * @return
+   * @param typeDefForResolvingInnerClass the jsonTypeDef to check
+   * @return true|false
    */
-  public boolean appliesToJSON(Object typeDefForResolvingInnerClass);
+  boolean appliesToJSON(Object typeDefForResolvingInnerClass);
 
   /**
    * construct the type name from given definition, parameter is necessary in case of nested types
    *
-   * @param jsonTypeDef
-   * @return
+   * @param jsonTypeDef the jsonTypeDef to use for resolving the TypeName
+   * @return one of {@link TypeName}
    */
-  public TypeName getTypeNameFromJSON(Object jsonTypeDef);
+  TypeName getTypeNameFromJSON(Object jsonTypeDef);
 }
