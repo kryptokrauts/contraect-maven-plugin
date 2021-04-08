@@ -5,7 +5,7 @@ import com.google.common.reflect.ClassPath;
 import com.google.common.reflect.ClassPath.ClassInfo;
 import com.kryptokrauts.aeternity.sdk.constants.Network;
 import com.kryptokrauts.aeternity.sdk.constants.VirtualMachine;
-import com.kryptokrauts.aeternity.sdk.domain.secret.impl.BaseKeyPair;
+import com.kryptokrauts.aeternity.sdk.domain.secret.KeyPair;
 import com.kryptokrauts.aeternity.sdk.service.aeternity.AeternityServiceConfiguration;
 import com.kryptokrauts.aeternity.sdk.service.keypair.KeyPairService;
 import com.kryptokrauts.aeternity.sdk.service.keypair.KeyPairServiceFactory;
@@ -42,8 +42,8 @@ public abstract class BaseTest {
 
     KeyPairService keyPairService = new KeyPairServiceFactory().getService();
 
-    BaseKeyPair baseKeyPair =
-        keyPairService.generateBaseKeyPairFromSecret(
+    KeyPair baseKeyPair =
+        keyPairService.recoverKeyPair(
             "79816BBF860B95600DDFABF9D81FEE81BDB30BE823B17D80B9E48BE0A7015ADF");
 
     aeternityServiceConfig =
