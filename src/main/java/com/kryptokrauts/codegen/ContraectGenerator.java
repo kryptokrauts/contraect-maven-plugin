@@ -42,7 +42,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.lang.model.element.Modifier;
@@ -790,7 +789,7 @@ public class ContraectGenerator {
                             + ".gas($T.valueOf(48000000l))"
                             + ".gasPrice($T.valueOf($T.MINIMAL_GAS_PRICE))"
                             + ".nonce(this.$N())"
-                            + ".ownerId(this.$L.getBaseKeyPair().getPublicKey())"
+                            + ".ownerId(this.$L.getKeyPair().getAddress())"
                             + ".ttl($T.ZERO)"
                             + ".virtualMachine(this.$L.getTargetVM())"
                             + ".build()",
@@ -817,7 +816,7 @@ public class ContraectGenerator {
                     .addStatement(
                         "$T $L = this.$L.transactions.blockingDryRunTransactions("
                             + "$T.builder().build()"
-                            + ".account($T.builder().publicKey(this.$L.getBaseKeyPair().getPublicKey()).build())"
+                            + ".account($T.builder().publicKey(this.$L.getKeyPair().getAddress()).build())"
                             + ".transactionInputItem($L))",
                         DryRunTransactionResults.class,
                         VAR_CC_DR_RESULTS,
@@ -1037,9 +1036,8 @@ public class ContraectGenerator {
             .addCode(
                 CodeBlock.builder()
                     .addStatement(
-                        "return this.$L.accounts.blockingGetAccount($T.empty()).getNonce().add($T.ONE)",
+                        "return this.$L.accounts.blockingGetAccount().getNonce().add($T.ONE)",
                         GCV_AETERNITY_SERVICE,
-                        Optional.class,
                         BigInteger.class)
                     .build())
             .returns(BigInteger.class)
@@ -1108,7 +1106,7 @@ public class ContraectGenerator {
                             + ".gasPrice($T.valueOf($T.MINIMAL_GAS_PRICE))"
                             + ".amount($L!=null?$L:$T.ZERO)"
                             + ".nonce(this.$N())"
-                            + ".callerId(this.$L.getBaseKeyPair().getPublicKey())"
+                            + ".callerId(this.$L.getKeyPair().getAddress())"
                             + ".ttl($T.ZERO)"
                             + ".virtualMachine(this.$L.getTargetVM())"
                             + ".build()",
@@ -1149,7 +1147,7 @@ public class ContraectGenerator {
                     .addStatement(
                         "$T $N = $L.transactions.blockingDryRunTransactions($T.builder().build().transactionInputItem($L)"
                             + ".account($T.builder()"
-                            + ".publicKey(this.$L.getBaseKeyPair().getPublicKey())"
+                            + ".publicKey(this.$L.getKeyPair().getAddress())"
                             + ".build()))",
                         DryRunTransactionResults.class,
                         VAR_DR_RESULTS,
