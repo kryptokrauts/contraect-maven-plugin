@@ -42,7 +42,7 @@ public abstract class BaseTest {
 
     KeyPairService keyPairService = new KeyPairServiceFactory().getService();
 
-    KeyPair baseKeyPair =
+    KeyPair keyPair =
         keyPairService.recoverKeyPair(
             "79816BBF860B95600DDFABF9D81FEE81BDB30BE823B17D80B9E48BE0A7015ADF");
 
@@ -51,7 +51,7 @@ public abstract class BaseTest {
             .compilerBaseUrl(getCompilerBaseUrl())
             .baseUrl(getNodeBaseUrl())
             .network(Network.DEVNET)
-            .baseKeyPair(baseKeyPair)
+            .keyPair(keyPair)
             .targetVM(VirtualMachine.FATE)
             .compile();
   }

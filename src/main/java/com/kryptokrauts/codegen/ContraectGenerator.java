@@ -789,7 +789,7 @@ public class ContraectGenerator {
                             + ".gas($T.valueOf(48000000l))"
                             + ".gasPrice($T.valueOf($T.MINIMAL_GAS_PRICE))"
                             + ".nonce(this.$N())"
-                            + ".ownerId(this.$L.getBaseKeyPair().getAddress())"
+                            + ".ownerId(this.$L.getKeyPair().getAddress())"
                             + ".ttl($T.ZERO)"
                             + ".virtualMachine(this.$L.getTargetVM())"
                             + ".build()",
@@ -816,7 +816,7 @@ public class ContraectGenerator {
                     .addStatement(
                         "$T $L = this.$L.transactions.blockingDryRunTransactions("
                             + "$T.builder().build()"
-                            + ".account($T.builder().publicKey(this.$L.getBaseKeyPair().getAddress()).build())"
+                            + ".account($T.builder().publicKey(this.$L.getKeyPair().getAddress()).build())"
                             + ".transactionInputItem($L))",
                         DryRunTransactionResults.class,
                         VAR_CC_DR_RESULTS,
@@ -1106,7 +1106,7 @@ public class ContraectGenerator {
                             + ".gasPrice($T.valueOf($T.MINIMAL_GAS_PRICE))"
                             + ".amount($L!=null?$L:$T.ZERO)"
                             + ".nonce(this.$N())"
-                            + ".callerId(this.$L.getBaseKeyPair().getAddress())"
+                            + ".callerId(this.$L.getKeyPair().getAddress())"
                             + ".ttl($T.ZERO)"
                             + ".virtualMachine(this.$L.getTargetVM())"
                             + ".build()",
@@ -1147,7 +1147,7 @@ public class ContraectGenerator {
                     .addStatement(
                         "$T $N = $L.transactions.blockingDryRunTransactions($T.builder().build().transactionInputItem($L)"
                             + ".account($T.builder()"
-                            + ".publicKey(this.$L.getBaseKeyPair().getAddress())"
+                            + ".publicKey(this.$L.getKeyPair().getAddress())"
                             + ".build()))",
                         DryRunTransactionResults.class,
                         VAR_DR_RESULTS,
