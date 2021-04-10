@@ -37,7 +37,7 @@ public class OptionMapper extends AbstractDatatypeMapper {
   public CodeBlock encodeValue(TypeName type, String variableName) {
     return CodeBlock.builder()
         .add(
-            "$L.isPresent()?\"" + HAS_VALUE_STRING + "(\"+$L+\")\":$S",
+            "($L.isPresent()?\"" + HAS_VALUE_STRING + "(\"+$L+\")\":$S)",
             variableName,
             this.resolveInstance.encodeParameter(
                 this.getOptionInnerType(type), variableName + ".get()"),
