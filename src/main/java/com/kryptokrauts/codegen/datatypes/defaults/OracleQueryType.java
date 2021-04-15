@@ -15,12 +15,12 @@ import java.util.Arrays;
 import java.util.List;
 import javax.lang.model.element.Modifier;
 
-public class OracleType implements CustomType {
+public class OracleQueryType implements CustomType {
 
   @Override
   public JsonObject getTypeDefinition(ABIJsonConfiguration abiJsonConfiguration) {
     return new JsonObject()
-        .put(abiJsonConfiguration.getCustomTypeNameElement(), ORACLE_TYPE)
+        .put(abiJsonConfiguration.getCustomTypeNameElement(), ORACLE_QUERY_TYPE)
         .put(
             abiJsonConfiguration.getCustomTypeTypedefElement(),
             new JsonObject()
@@ -31,7 +31,7 @@ public class OracleType implements CustomType {
                             new JsonObject()
                                 .put(
                                     abiJsonConfiguration.getCustomTypeTypedefNameElement(),
-                                    ORACLE_TYPE)
+                                    ORACLE_QUERY_TYPE)
                                 .put(
                                     abiJsonConfiguration.getCustomTypeTypedefTypeElement(),
                                     "string"))));
@@ -40,7 +40,7 @@ public class OracleType implements CustomType {
   @Override
   public CodeBlock encodeValueCodeblock(String MP_PARAM) {
     return CodeBlock.builder()
-        .add("$L.get" + CodegenUtil.getUppercaseClassName(ORACLE_TYPE) + "()", MP_PARAM)
+        .add("$L.get" + CodegenUtil.getUppercaseClassName(ORACLE_QUERY_TYPE) + "()", MP_PARAM)
         .build();
   }
 
@@ -49,7 +49,7 @@ public class OracleType implements CustomType {
     return CodeBlock.builder()
         .add(
             "new $T($L.toString())",
-            ClassName.get("", CodegenUtil.getUppercaseClassName(ORACLE_TYPE)),
+            ClassName.get("", CodegenUtil.getUppercaseClassName(ORACLE_QUERY_TYPE)),
             MP_PARAM)
         .build();
   }
@@ -58,7 +58,7 @@ public class OracleType implements CustomType {
   public MethodSpec constructorMethod() {
     return MethodSpec.constructorBuilder()
         .addModifiers(Modifier.PUBLIC)
-        .addParameter(ParameterSpec.builder(String.class, ORACLE_TYPE).build())
+        .addParameter(ParameterSpec.builder(String.class, ORACLE_QUERY_TYPE).build())
         .addCode(ORACLE_CHECK_CODEBLOCK)
         .build();
   }
@@ -68,7 +68,7 @@ public class OracleType implements CustomType {
     return Arrays.asList(
         MethodSpec.methodBuilder("setOracle")
             .addModifiers(Modifier.PUBLIC)
-            .addParameter(ParameterSpec.builder(String.class, ORACLE_TYPE).build())
+            .addParameter(ParameterSpec.builder(String.class, ORACLE_QUERY_TYPE).build())
             .addCode(ORACLE_CHECK_CODEBLOCK)
             .build());
   }
@@ -76,17 +76,17 @@ public class OracleType implements CustomType {
   private CodeBlock ORACLE_CHECK_CODEBLOCK =
       CodeBlock.builder()
           .beginControlFlow(
-              "if(!$T.hasValidType($L,$T.ORACLE_PUBKEY))",
+              "if(!$T.hasValidType($L,$T.ORACLE_QUERY_ID))",
               EncodingUtils.class,
-              ORACLE_TYPE,
+              ORACLE_QUERY_TYPE,
               ApiIdentifiers.class)
           .addStatement(
               "throw new $T($T.format($S,$L))",
               InvalidParameterException.class,
               String.class,
-              "Given address %s is not of type aeternity oracle",
-              ORACLE_TYPE)
+              "Given address %s is not of type aeternity oracle_query",
+              ORACLE_QUERY_TYPE)
           .endControlFlow()
-          .addStatement("this.$L=$L", ORACLE_TYPE, ORACLE_TYPE)
+          .addStatement("this.$L=$L", ORACLE_QUERY_TYPE, ORACLE_QUERY_TYPE)
           .build();
 }

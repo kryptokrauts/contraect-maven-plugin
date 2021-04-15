@@ -2,6 +2,7 @@ package com.kryptokrauts.codegen.datatypes;
 
 import com.kryptokrauts.codegen.CodegenUtil;
 import com.kryptokrauts.codegen.CustomTypesGenerator;
+import com.kryptokrauts.codegen.datatypes.defaults.CustomType;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.TypeName;
@@ -54,15 +55,24 @@ public class CustomTypeMapper extends AbstractDatatypeMapper {
   }
 
   private String tryResolveSpecialPredefinedCustomTypes(Object type) {
-    if (type != null && type.toString().contains("bytes")) {
-      try {
-        JsonObject json = JsonObject.mapFrom(type);
-        if (json.getValue("bytes") != null) {
-          return CodegenUtil.getUppercaseClassName(
-              this.resolveInstance.customTypesGenerator.addByteType(json.getInteger("bytes")));
+    if (type != null) {
+      if (type.toString().contains("bytes")) {
+        try {
+          JsonObject json = JsonObject.mapFrom(type);
+          if (json.getValue("bytes") != null) {
+            return CodegenUtil.getUppercaseClassName(
+                this.resolveInstance.customTypesGenerator.addByteType(json.getInteger("bytes")));
+          }
+        } catch (Exception e) {
+          e.printStackTrace();
         }
-      } catch (Exception e) {
-        e.printStackTrace();
+      } else if (type instanceof JsonObject) {
+        JsonObject json = JsonObject.mapFrom(type);
+        if (json.containsKey(CustomType.ORACLE_TYPE)) {
+          return CodegenUtil.getUppercaseClassName(CustomType.ORACLE_TYPE);
+        } else if (json.containsKey(CustomType.ORACLE_QUERY_TYPE)) {
+          return CodegenUtil.getUppercaseClassName(CustomType.ORACLE_QUERY_TYPE);
+        }
       }
     }
     return null;
