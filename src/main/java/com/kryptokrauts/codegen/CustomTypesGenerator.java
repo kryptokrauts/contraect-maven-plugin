@@ -6,6 +6,7 @@ import com.kryptokrauts.codegen.datatypes.defaults.AddressType;
 import com.kryptokrauts.codegen.datatypes.defaults.BytesType;
 import com.kryptokrauts.codegen.datatypes.defaults.CustomType;
 import com.kryptokrauts.codegen.datatypes.defaults.HashType;
+import com.kryptokrauts.codegen.datatypes.defaults.OracleType;
 import com.kryptokrauts.codegen.datatypes.defaults.SignatureType;
 import com.kryptokrauts.codegen.maven.ABIJsonConfiguration;
 import com.squareup.javapoet.ClassName;
@@ -57,7 +58,9 @@ public class CustomTypesGenerator {
           CustomType.HASH_TYPE,
           new HashType(),
           CustomType.SIGNATURE_TYPE,
-          new SignatureType());
+          new SignatureType(),
+          CustomType.ORACLE_TYPE,
+          new OracleType());
 
   private Map<String, CustomType> INSTANCE_PREDEFINED_TYPES = new HashMap<>(PREDEFINED_TYPES);
 

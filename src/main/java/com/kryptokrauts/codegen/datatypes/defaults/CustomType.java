@@ -20,6 +20,8 @@ public interface CustomType {
 
   public static final String SIGNATURE_TYPE = "signature";
 
+  public static final String ORACLE_TYPE = "oracle";
+
   public JsonObject getTypeDefinition(ABIJsonConfiguration abiJsonConfiguration);
 
   public CodeBlock encodeValueCodeblock(String MP_PARAM);
