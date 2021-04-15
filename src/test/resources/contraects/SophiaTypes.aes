@@ -89,6 +89,12 @@ contract SophiaTypes =
 
     entrypoint testSignature(signatureValue: signature) : signature =
         signatureValue
+        
+    entrypoint testOracle(oracle: oracle(string, int)) : oracle(string, int) =
+    	oracle
+    
+    entrypoint testOracleQuery(oracle_query: oracle_query(string, string)) : oracle_query(string, string) =
+    	oracle_query
 
     stateful entrypoint testIntStateful(intValue: int) : int =
         intValue
