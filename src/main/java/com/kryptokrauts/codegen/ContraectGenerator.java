@@ -18,6 +18,8 @@ import com.kryptokrauts.aeternity.sdk.service.transaction.domain.PostTransaction
 import com.kryptokrauts.aeternity.sdk.service.transaction.type.model.ContractCallTransactionModel;
 import com.kryptokrauts.aeternity.sdk.service.transaction.type.model.ContractCreateTransactionModel;
 import com.kryptokrauts.codegen.datatypes.DatatypeMappingHandler;
+import com.kryptokrauts.codegen.datatypes.OptionMapper;
+import com.kryptokrauts.codegen.jackson.JacksonDeserializerGenerator;
 import com.kryptokrauts.codegen.maven.ABIJsonConfiguration;
 import com.kryptokrauts.codegen.maven.CodegenConfiguration;
 import com.squareup.javapoet.ClassName;
@@ -65,7 +67,7 @@ public class ContraectGenerator {
    *
    * <p>------------------------------
    */
-  private static String GCV_LOGGER = "logger";
+  public static String GCV_LOGGER = "logger";
 
   private static String GCV_DEPLOYED_CONTRACT_ID = "deployedContractId";
 
@@ -96,6 +98,8 @@ public class ContraectGenerator {
 
   private MethodSpec GCPM_DRY_RUN;
 
+  private MethodSpec GCPM_REPACK_UNWARPPED_RESULT_OBJECT;
+
   private MethodSpec GCPM_WAIT_FOR_TX_INFO;
 
   private MethodSpec GCPM_WAIT_FOR_TX;
@@ -113,6 +117,8 @@ public class ContraectGenerator {
   private DatatypeMappingHandler datatypeEncodingHandler;
 
   private CustomTypesGenerator customTypesGenerator;
+
+  private JacksonDeserializerGenerator jacksonDeserializerGenerator;
 
   public void generate(String aesFile) throws MojoExecutionException {
     String aesContent = readFile(aesFile);
@@ -220,10 +226,14 @@ public class ContraectGenerator {
           CodegenUtil.getUppercaseClassName(
               abiJson.getString(abiJsonConfiguration.getContractNameElement()));
 
+      this.jacksonDeserializerGenerator = new JacksonDeserializerGenerator();
       this.datatypeEncodingHandler =
           new DatatypeMappingHandler(codegenConfiguration.getTargetPackage(), className);
       this.customTypesGenerator =
-          new CustomTypesGenerator(this.datatypeEncodingHandler, this.abiJsonConfiguration);
+          new CustomTypesGenerator(
+              this.datatypeEncodingHandler,
+              this.abiJsonConfiguration,
+              this.jacksonDeserializerGenerator);
 
       this.datatypeEncodingHandler.setCustomTypesGenerator(this.customTypesGenerator);
 
@@ -286,6 +296,7 @@ public class ContraectGenerator {
                   this.customTypesGenerator.generateCustomTypes(
                       abiJson.getJsonArray(abiJsonConfiguration.getCustomTypeElement()),
                       abiJson.getValue(abiJsonConfiguration.getStateElement())))
+              .addTypes(this.jacksonDeserializerGenerator.generateJacksonDeserializers())
               .addJavadoc(CodegenUtil.LICENSE_HEADER)
               .addJavadoc(CodegenUtil.KRYPTOKRAUTS)
               .addJavadoc(CodegenUtil.LICENSE)
@@ -606,7 +617,12 @@ public class ContraectGenerator {
 
     return CodeBlock.builder()
         .addStatement(
-            "$T $L = $L.getResult()", Object.class, VAR_UNWRAPPED_RESULT_OBJECT, VAR_RESULT_OBJECT)
+            "$T $L = $N($L.getResult(),$S)",
+            Object.class,
+            VAR_UNWRAPPED_RESULT_OBJECT,
+            this.GCPM_REPACK_UNWARPPED_RESULT_OBJECT,
+            VAR_RESULT_OBJECT,
+            functionName)
         .add(checkResultCodeblock(VAR_RESULT_OBJECT, VAR_UNWRAPPED_RESULT_OBJECT, functionName))
         .add(returnStatement)
         .build();
@@ -752,6 +768,7 @@ public class ContraectGenerator {
         buildGetNextNonceMethod(),
         buildGetCalldataForFunctionMethod(),
         buildCreateTransactionCallModelMethod(),
+        buildRepackUnwrappedResultObjectMethod(),
         buildDryRunMethod(),
         buildWaitForTxMethod(),
         buildWaitForTxInfoMethod(),
@@ -1147,6 +1164,179 @@ public class ContraectGenerator {
             .build();
 
     return this.GCPM_CREATE_CCM;
+  }
+
+  private MethodSpec buildRepackUnwrappedResultObjectMethod() {
+    String MP_RESULT_OBJECT = "resultObject";
+    String MP_CC_FUNC_NAME = "functionName";
+
+    String VAR_REPACKED_RESULT_MAP = "repackedResultMap";
+    String VAR_VERTX_JSON_OBJECT = "vertxJsonObject";
+    String VAR_FIELD_OBJECT_VALUE = "fieldObjectValue";
+    String VAR_OPTIONAL_VALUE = "optionalValue";
+    String VAR_JSON_FIELD_KEY = "jsonFieldKey";
+    String VAR_OPTIONAL_LIST = "optionalList";
+    String VAR_FIELD_VALUE_AS_LIST = "fieldObjectValueAsList";
+    String VAR_FIRST_FIELD_OBJECT_VALUE = "firstFieldObjectValue";
+    String VAR_INNER_VALUE = "innerValue";
+    String VAR_PARSED_MAP = "parsedMap";
+    String VAR_I = "i";
+    String VAR_MAP_VALUES = "mapValues";
+    String VAR_MAP_KEY = "mapKey";
+    String VAR_MAP_VALUE = "mapValue";
+
+    this.GCPM_REPACK_UNWARPPED_RESULT_OBJECT =
+        MethodSpec.methodBuilder("repackUnwrappedResultObject")
+            .addModifiers(Modifier.PRIVATE)
+            .returns(Object.class)
+            .addParameter(ParameterSpec.builder(Object.class, MP_RESULT_OBJECT).build())
+            .addParameter(ParameterSpec.builder(String.class, MP_CC_FUNC_NAME).build())
+            .addCode(
+                CodeBlock.builder()
+                    .beginControlFlow("try")
+                    .beginControlFlow(
+                        "if($L != null && $L instanceof $T)",
+                        MP_RESULT_OBJECT,
+                        MP_RESULT_OBJECT,
+                        Map.class)
+                    .addStatement(
+                        "$T $L = new $T<>()",
+                        ParameterizedTypeName.get(Map.class, String.class, Object.class),
+                        VAR_REPACKED_RESULT_MAP,
+                        HashMap.class)
+                    .addStatement(
+                        "$T $L = $T.mapFrom($L)",
+                        JsonObject.class,
+                        VAR_VERTX_JSON_OBJECT,
+                        JsonObject.class,
+                        MP_RESULT_OBJECT)
+                    .add(
+                        "$L.fieldNames().forEach($L -> {",
+                        VAR_VERTX_JSON_OBJECT,
+                        VAR_JSON_FIELD_KEY)
+                    .addStatement(
+                        "$T $L = $L.getValue($L)",
+                        Object.class,
+                        VAR_FIELD_OBJECT_VALUE,
+                        VAR_VERTX_JSON_OBJECT,
+                        VAR_JSON_FIELD_KEY)
+                    .beginControlFlow(
+                        "if($L instanceof $T)", VAR_FIELD_OBJECT_VALUE, JsonObject.class)
+                    .addStatement(
+                        "$T $L = ($T)$L",
+                        JsonObject.class,
+                        VAR_OPTIONAL_VALUE,
+                        JsonObject.class,
+                        VAR_FIELD_OBJECT_VALUE)
+                    .beginControlFlow(
+                        "if($L.containsKey($S))", VAR_OPTIONAL_VALUE, OptionMapper.HAS_VALUE_STRING)
+                    .addStatement(
+                        "$L = $L.getValue($S)",
+                        VAR_FIELD_OBJECT_VALUE,
+                        VAR_OPTIONAL_VALUE,
+                        OptionMapper.HAS_VALUE_STRING)
+                    .beginControlFlow(
+                        "if($L != null && $L instanceof $T)",
+                        VAR_FIELD_OBJECT_VALUE,
+                        VAR_FIELD_OBJECT_VALUE,
+                        JsonArray.class)
+                    .addStatement(
+                        "$T $L = ($T)$L",
+                        JsonArray.class,
+                        VAR_OPTIONAL_LIST,
+                        JsonArray.class,
+                        VAR_FIELD_OBJECT_VALUE)
+                    .beginControlFlow("if($L.size() == 1)", VAR_OPTIONAL_LIST)
+                    .addStatement("$L = $L.getValue(0)", VAR_FIELD_OBJECT_VALUE, VAR_OPTIONAL_LIST)
+                    .endControlFlow()
+                    .endControlFlow()
+                    .endControlFlow()
+                    .endControlFlow()
+                    .beginControlFlow(
+                        "if($L instanceof $T)", VAR_FIELD_OBJECT_VALUE, JsonArray.class)
+                    .addStatement(
+                        "$T $L = ($T)$L",
+                        JsonArray.class,
+                        VAR_FIELD_VALUE_AS_LIST,
+                        JsonArray.class,
+                        VAR_FIELD_OBJECT_VALUE)
+                    .beginControlFlow("if($L.isEmpty())", VAR_FIELD_VALUE_AS_LIST)
+                    .addStatement("$L = null", VAR_FIELD_OBJECT_VALUE)
+                    .endControlFlow()
+                    .beginControlFlow("else")
+                    .addStatement(
+                        "$T $L = $L.getValue(0)",
+                        Object.class,
+                        VAR_FIRST_FIELD_OBJECT_VALUE,
+                        VAR_FIELD_VALUE_AS_LIST)
+                    .beginControlFlow(
+                        "if($L instanceof $T)", VAR_FIRST_FIELD_OBJECT_VALUE, JsonArray.class)
+                    .addStatement(
+                        "$T $L = ($T)$L",
+                        JsonArray.class,
+                        VAR_INNER_VALUE,
+                        JsonArray.class,
+                        VAR_FIELD_OBJECT_VALUE)
+                    .beginControlFlow(
+                        "if($L.size() > 0 && $L.getValue(0) instanceof $T)",
+                        VAR_INNER_VALUE,
+                        VAR_INNER_VALUE,
+                        JsonArray.class)
+                    .addStatement(
+                        "$T $L = new $T<>()",
+                        ParameterizedTypeName.get(Map.class, Object.class, Object.class),
+                        VAR_PARSED_MAP,
+                        HashMap.class)
+                    .beginControlFlow(
+                        "for(int $L=0; $L < $L.size(); $L++)", VAR_I, VAR_I, VAR_INNER_VALUE, VAR_I)
+                    .addStatement(
+                        "$T $L = $L.getJsonArray($L)",
+                        JsonArray.class,
+                        VAR_MAP_VALUES,
+                        VAR_INNER_VALUE,
+                        VAR_I)
+                    .beginControlFlow("if($L.size()>0)", VAR_MAP_VALUES)
+                    .addStatement(
+                        "$T $L = $L.getValue(0)", Object.class, VAR_MAP_KEY, VAR_MAP_VALUES)
+                    .addStatement(
+                        "$T $L = $L.getValue(1)", Object.class, VAR_MAP_VALUE, VAR_MAP_VALUES)
+                    .addStatement("$L.put($L,$L)", VAR_PARSED_MAP, VAR_MAP_KEY, VAR_MAP_VALUE)
+                    .endControlFlow()
+                    .endControlFlow()
+                    .addStatement("$L = $L", VAR_FIELD_OBJECT_VALUE, VAR_PARSED_MAP)
+                    .endControlFlow()
+                    .endControlFlow()
+                    .endControlFlow()
+                    .endControlFlow()
+                    .beginControlFlow(
+                        "if($S.equals($L))",
+                        OptionMapper.HAS_NO_VALUE_STRING,
+                        VAR_FIELD_OBJECT_VALUE)
+                    .addStatement("$L = null", VAR_FIELD_OBJECT_VALUE)
+                    .endControlFlow()
+                    .addStatement(
+                        "$L.put($L, $L)",
+                        VAR_REPACKED_RESULT_MAP,
+                        VAR_JSON_FIELD_KEY,
+                        VAR_FIELD_OBJECT_VALUE)
+                    .addStatement("})")
+                    .addStatement("return $L", VAR_REPACKED_RESULT_MAP)
+                    .endControlFlow()
+                    .endControlFlow()
+                    .beginControlFlow("catch($T e)", Exception.class)
+                    .addStatement(
+                        "throw new $T($T.format($S,$L,$L.getMessage()))",
+                        RuntimeException.class,
+                        String.class,
+                        "\nCall of function %s failed - cannot repack unwrapped result object\nException Hint: %s",
+                        MP_CC_FUNC_NAME,
+                        "e")
+                    .endControlFlow()
+                    .addStatement("return $L", MP_RESULT_OBJECT)
+                    .build())
+            .build();
+
+    return this.GCPM_REPACK_UNWARPPED_RESULT_OBJECT;
   }
 
   private MethodSpec buildDryRunMethod() {

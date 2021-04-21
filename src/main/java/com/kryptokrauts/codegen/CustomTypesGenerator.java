@@ -1,5 +1,8 @@
 package com.kryptokrauts.codegen;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableMap;
 import com.kryptokrauts.codegen.datatypes.DatatypeMappingHandler;
 import com.kryptokrauts.codegen.datatypes.defaults.AddressType;
@@ -9,6 +12,8 @@ import com.kryptokrauts.codegen.datatypes.defaults.HashType;
 import com.kryptokrauts.codegen.datatypes.defaults.OracleQueryType;
 import com.kryptokrauts.codegen.datatypes.defaults.OracleType;
 import com.kryptokrauts.codegen.datatypes.defaults.SignatureType;
+import com.kryptokrauts.codegen.jackson.JacksonDatatypeDeserializer;
+import com.kryptokrauts.codegen.jackson.JacksonDeserializerGenerator;
 import com.kryptokrauts.codegen.maven.ABIJsonConfiguration;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
@@ -17,6 +22,7 @@ import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterSpec;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import java.util.Arrays;
@@ -51,6 +57,8 @@ public class CustomTypesGenerator {
   @NonNull private DatatypeMappingHandler datatypeEncodingHandler;
 
   @NonNull private ABIJsonConfiguration abiJsonConfiguration;
+
+  @NonNull private JacksonDeserializerGenerator jacksonDeserializerGenerator;
 
   /*
    * this map contains standard sophia types which are automatically added as represented sublasses
@@ -88,9 +96,36 @@ public class CustomTypesGenerator {
                   abiJsonConfiguration.getStateElement())
               .put(abiJsonConfiguration.getCustomTypeTypedefElement(), state));
     }
+
+    // add jackson mapper for custom type
+    customTypes.forEach(typeDefinition -> addJacksonMapper(JsonObject.mapFrom(typeDefinition)));
+
     return customTypes.stream()
         .map(typeDefinition -> generateCustomType(JsonObject.mapFrom(typeDefinition)))
         .collect(Collectors.toList());
+  }
+
+  /*
+   * if variant is defined, it is an enum, currently mapped just to string with no value checking
+   * therefore we need to add this to custom jackson mapping and handle it as normal alias
+   */
+  private void addJacksonMapper(JsonObject typeDefinition) {
+    Object fieldDefinition =
+        typeDefinition.getValue(abiJsonConfiguration.getCustomTypeTypedefElement());
+    if (fieldDefinition instanceof JsonObject) {
+      JsonObject typedef =
+          typeDefinition.getJsonObject(abiJsonConfiguration.getCustomTypeTypedefElement());
+      JsonArray record = typedef.getJsonArray(CustomType.RECORD);
+      JsonArray variant = typedef.getJsonArray(CustomType.VARIANT);
+      if (record == null && typedef != null) {
+        if (variant != null) {
+          String name =
+              typeDefinition.getString(abiJsonConfiguration.getCustomTypeTypedefNameElement());
+          this.jacksonDeserializerGenerator.CUSTOM_JACKSON_DESERIALIZERS.add(
+              new JacksonDatatypeDeserializer(CodegenUtil.getUppercaseClassName(name)));
+        }
+      }
+    }
   }
 
   private TypeSpec generateCustomType(JsonObject typeDefinition) {
@@ -197,6 +232,10 @@ public class CustomTypesGenerator {
 
   private MethodSpec generateMapToReturnValueMethod(
       List<Pair<String, TypeName>> fields, String customTypeName, boolean isAlias) {
+
+    String VAR_OBJECT_MAPPER = "objectMapper";
+    String VAR_SIMPLE_MODULE = "module";
+
     CodeBlock returnValueLogic;
     if (isAlias) {
       returnValueLogic =
@@ -211,9 +250,26 @@ public class CustomTypesGenerator {
       returnValueLogic =
           CodeBlock.builder()
               .addStatement(
-                  "return $T.mapFrom($L).mapTo($T.class)",
-                  JsonObject.class,
+                  "$T $L = new $T()", ObjectMapper.class, VAR_OBJECT_MAPPER, ObjectMapper.class)
+              .addStatement(
+                  "$T $L = new $T()", SimpleModule.class, VAR_SIMPLE_MODULE, SimpleModule.class)
+              .add(getAddDeserializerCodeblock(VAR_SIMPLE_MODULE))
+              .addStatement("$L.registerModule($L)", VAR_OBJECT_MAPPER, VAR_SIMPLE_MODULE)
+              .addStatement("$L.registerModule(new $T())", VAR_OBJECT_MAPPER, Jdk8Module.class)
+              .beginControlFlow("try")
+              .addStatement(
+                  "return $L.readValue($T.encode($L),$T.class)",
+                  VAR_OBJECT_MAPPER,
+                  Json.class,
                   MP_PARAM,
+                  this.getClassName(customTypeName))
+              .nextControlFlow("catch($T e)", Exception.class)
+              .addStatement("$L.error(e.getMessage())", ContraectGenerator.GCV_LOGGER)
+              .endControlFlow()
+              .addStatement(
+                  "throw new $T($S+$S)",
+                  RuntimeException.class,
+                  "Error mapping returned values for class: ",
                   this.getClassName(customTypeName))
               .build();
     }
@@ -236,6 +292,19 @@ public class CustomTypesGenerator {
         .returns(this.getClassName(customTypeName))
         .addCode(returnValueLogic)
         .build();
+  }
+
+  private CodeBlock getAddDeserializerCodeblock(String VAR_SIMPLE_MODULE) {
+    final CodeBlock.Builder addDeserializers = CodeBlock.builder();
+    this.jacksonDeserializerGenerator.CUSTOM_JACKSON_DESERIALIZERS.forEach(
+        deserializer ->
+            addDeserializers.addStatement(
+                "$L.addDeserializer($T.class, new $N($T.class))",
+                VAR_SIMPLE_MODULE,
+                deserializer.getDeserializerType(),
+                deserializer.getDeserializerName(),
+                deserializer.getDeserializerType()));
+    return addDeserializers.build();
   }
 
   private List<MethodSpec> generateCustomTypeConstructors(
@@ -286,7 +355,14 @@ public class CustomTypesGenerator {
                 + ((fields != null && fields.size() > 0)
                     ? fields.stream()
                         .map(
-                            f -> "\"" + f.getValue0() + "=\"+this." + f.getValue0() + ".toString()")
+                            f ->
+                                "\""
+                                    + f.getValue0()
+                                    + "=\"+(this."
+                                    + f.getValue0()
+                                    + " != null?this."
+                                    + f.getValue0()
+                                    + ".toString():\"\")")
                         .collect(Collectors.joining("+\",\"+"))
                     : "\"\""))
         .build();
