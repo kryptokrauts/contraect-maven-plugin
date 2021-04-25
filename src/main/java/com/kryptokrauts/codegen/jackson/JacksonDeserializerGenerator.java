@@ -23,6 +23,8 @@ import org.javatuples.Sextet;
 import org.javatuples.Triplet;
 import org.javatuples.Unit;
 
+/** @deprecated custom deserializer currently not necessary, keep logic in case we need it later */
+@Deprecated
 @RequiredArgsConstructor
 public class JacksonDeserializerGenerator {
 

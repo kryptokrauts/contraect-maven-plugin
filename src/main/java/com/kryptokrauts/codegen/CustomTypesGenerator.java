@@ -1,8 +1,6 @@
 package com.kryptokrauts.codegen;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableMap;
 import com.kryptokrauts.codegen.datatypes.DatatypeMappingHandler;
 import com.kryptokrauts.codegen.datatypes.defaults.AddressType;
@@ -12,14 +10,13 @@ import com.kryptokrauts.codegen.datatypes.defaults.HashType;
 import com.kryptokrauts.codegen.datatypes.defaults.OracleQueryType;
 import com.kryptokrauts.codegen.datatypes.defaults.OracleType;
 import com.kryptokrauts.codegen.datatypes.defaults.SignatureType;
-import com.kryptokrauts.codegen.jackson.JacksonDatatypeDeserializer;
-import com.kryptokrauts.codegen.jackson.JacksonDeserializerGenerator;
 import com.kryptokrauts.codegen.maven.ABIJsonConfiguration;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterSpec;
+import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import io.vertx.core.json.Json;
@@ -57,8 +54,6 @@ public class CustomTypesGenerator {
   @NonNull private DatatypeMappingHandler datatypeEncodingHandler;
 
   @NonNull private ABIJsonConfiguration abiJsonConfiguration;
-
-  @NonNull private JacksonDeserializerGenerator jacksonDeserializerGenerator;
 
   /*
    * this map contains standard sophia types which are automatically added as represented sublasses
@@ -121,8 +116,6 @@ public class CustomTypesGenerator {
         if (variant != null) {
           String name =
               typeDefinition.getString(abiJsonConfiguration.getCustomTypeTypedefNameElement());
-          this.jacksonDeserializerGenerator.CUSTOM_JACKSON_DESERIALIZERS.add(
-              new JacksonDatatypeDeserializer(CodegenUtil.getUppercaseClassName(name)));
         }
       }
     }
@@ -233,8 +226,9 @@ public class CustomTypesGenerator {
   private MethodSpec generateMapToReturnValueMethod(
       List<Pair<String, TypeName>> fields, String customTypeName, boolean isAlias) {
 
-    String VAR_OBJECT_MAPPER = "objectMapper";
-    String VAR_SIMPLE_MODULE = "module";
+    String VAR_ATTRIBUTE_MAP = "attributes";
+    String VAR_ATTRIBUTE_KEY = "attributeKey";
+    String VAR_ATTRIBUTE_VALUE = "attributeValue";
 
     CodeBlock returnValueLogic;
     if (isAlias) {
@@ -247,30 +241,73 @@ public class CustomTypesGenerator {
                       fields.get(0).getValue1(), MP_PARAM))
               .build();
     } else {
+
+      CodeBlock initFields = CodeBlock.builder().build();
+      for (Pair<String, TypeName> field : fields) {
+        initFields =
+            initFields
+                .toBuilder()
+                .addStatement("$T $L = null", field.getValue1(), field.getValue0())
+                .build();
+      }
+
+      CodeBlock returnBlock =
+          CodeBlock.builder()
+              .add("return new $T(", this.getClassName(customTypeName))
+              .add(
+                  CodeBlock.join(
+                      fields.stream()
+                          .map(
+                              field -> {
+                                return CodeBlock.of("$L", field.getValue0());
+                              })
+                          .collect(Collectors.toList()),
+                      ","))
+              .add(");")
+              .build();
+
+      CodeBlock mapIndividualFields = CodeBlock.builder().build();
+      for (Pair<String, TypeName> field : fields) {
+        mapIndividualFields =
+            mapIndividualFields
+                .toBuilder()
+                .beginControlFlow("if($S.equals($L))", field.getValue0(), VAR_ATTRIBUTE_KEY)
+                .addStatement(
+                    "$L = $L",
+                    field.getValue0(),
+                    this.datatypeEncodingHandler.mapToReturnValue(
+                        field.getValue1(), VAR_ATTRIBUTE_VALUE))
+                .endControlFlow()
+                .build();
+      }
+
       returnValueLogic =
           CodeBlock.builder()
-              .addStatement(
-                  "$T $L = new $T()", ObjectMapper.class, VAR_OBJECT_MAPPER, ObjectMapper.class)
-              .addStatement(
-                  "$T $L = new $T()", SimpleModule.class, VAR_SIMPLE_MODULE, SimpleModule.class)
-              .add(getAddDeserializerCodeblock(VAR_SIMPLE_MODULE))
-              .addStatement("$L.registerModule($L)", VAR_OBJECT_MAPPER, VAR_SIMPLE_MODULE)
-              .addStatement("$L.registerModule(new $T())", VAR_OBJECT_MAPPER, Jdk8Module.class)
+              .add(initFields)
               .beginControlFlow("try")
               .addStatement(
-                  "return $L.readValue($T.encode($L),$T.class)",
-                  VAR_OBJECT_MAPPER,
+                  "$T $L = new $T().readValue($T.encode($L),$T.class)",
+                  ParameterizedTypeName.get(Map.class, String.class, Object.class),
+                  VAR_ATTRIBUTE_MAP,
+                  ObjectMapper.class,
                   Json.class,
                   MP_PARAM,
-                  this.getClassName(customTypeName))
-              .nextControlFlow("catch($T e)", Exception.class)
-              .addStatement("$L.error(e.getMessage())", ContraectGenerator.GCV_LOGGER)
-              .endControlFlow()
+                  Map.class)
+              .beginControlFlow(
+                  "for($T $L : $L.keySet())", String.class, VAR_ATTRIBUTE_KEY, VAR_ATTRIBUTE_MAP)
               .addStatement(
-                  "throw new $T($S+$S)",
-                  RuntimeException.class,
-                  "Error mapping returned values for class: ",
-                  this.getClassName(customTypeName))
+                  "$T $L = $L.get($L)",
+                  Object.class,
+                  VAR_ATTRIBUTE_VALUE,
+                  VAR_ATTRIBUTE_MAP,
+                  VAR_ATTRIBUTE_KEY)
+              .add(mapIndividualFields)
+              .endControlFlow()
+              .endControlFlow()
+              .beginControlFlow("catch($T e)", Exception.class)
+              .addStatement("e.printStackTrace()")
+              .endControlFlow()
+              .add(returnBlock)
               .build();
     }
     // if it is a predefined class use this encoding logic
@@ -292,19 +329,6 @@ public class CustomTypesGenerator {
         .returns(this.getClassName(customTypeName))
         .addCode(returnValueLogic)
         .build();
-  }
-
-  private CodeBlock getAddDeserializerCodeblock(String VAR_SIMPLE_MODULE) {
-    final CodeBlock.Builder addDeserializers = CodeBlock.builder();
-    this.jacksonDeserializerGenerator.CUSTOM_JACKSON_DESERIALIZERS.forEach(
-        deserializer ->
-            addDeserializers.addStatement(
-                "$L.addDeserializer($T.class, new $N($T.class))",
-                VAR_SIMPLE_MODULE,
-                deserializer.getDeserializerType(),
-                deserializer.getDeserializerName(),
-                deserializer.getDeserializerType()));
-    return addDeserializers.build();
   }
 
   private List<MethodSpec> generateCustomTypeConstructors(

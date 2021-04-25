@@ -27,6 +27,9 @@ contract SophiaTypes =
       	 test2: option(map(string, int)),
       	 test3: (int * bool),
       	 test4: (string * int * int)}
+      	 
+    entrypoint testTimestamp() : int =
+    	Chain.timestamp
          
     entrypoint testHash(hashValue: hash) : hash =
         hashValue
