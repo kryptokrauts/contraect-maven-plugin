@@ -7,12 +7,11 @@ import com.squareup.javapoet.TypeName;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class MapMapper extends AbstractDatatypeMapper {
 
-  private static final String VAR_KEY = "k";
-  private static final String VAR_VALUE = "v";
   private static final int KEY_POS = 0;
   private static final int VALUE_POS = 1;
 
@@ -33,23 +32,26 @@ public class MapMapper extends AbstractDatatypeMapper {
   }
 
   public CodeBlock encodeValue(TypeName type, String variableName) {
+    String keyName = "var_" + UUID.randomUUID().toString().substring(0, 8);
 
     return CodeBlock.builder()
         .add("\"{\"+")
         .add("$L.keySet().stream()", variableName)
         .add(
             ".map($L -> \"[\"+$L+\"] = \"+$L)",
-            VAR_KEY,
-            this.resolveInstance.encodeParameter(getInnerType(type, KEY_POS), VAR_KEY),
+            keyName,
+            this.resolveInstance.encodeParameter(getInnerType(type, KEY_POS), keyName),
             this.resolveInstance.encodeParameter(
                 getInnerType(type, VALUE_POS),
-                CodeBlock.builder().add("$L.get($L)", variableName, VAR_KEY).build().toString()))
+                CodeBlock.builder().add("$L.get($L)", variableName, keyName).build().toString()))
         .add(".collect($T.joining(\",\"))", Collectors.class)
         .add("+\"}\"")
         .build();
   }
 
   public CodeBlock mapToReturnValue(TypeName type, String variableName) {
+    String keyName = "var_" + UUID.randomUUID().toString().substring(0, 8);
+    String valueName = "var_" + UUID.randomUUID().toString().substring(0, 8);
 
     return CodeBlock.builder()
         .add(
@@ -59,14 +61,14 @@ public class MapMapper extends AbstractDatatypeMapper {
             Collectors.class)
         .add(
             "$L->$L",
-            VAR_KEY,
+            keyName,
             this.resolveInstance.mapToReturnValue(
-                getInnerType(type, KEY_POS), getMapListReturnValueField(KEY_POS, VAR_KEY)))
+                getInnerType(type, KEY_POS), getMapListReturnValueField(KEY_POS, keyName)))
         .add(
             ",$L->$L",
-            VAR_VALUE,
+            valueName,
             this.resolveInstance.mapToReturnValue(
-                getInnerType(type, VALUE_POS), getMapListReturnValueField(VALUE_POS, VAR_VALUE)))
+                getInnerType(type, VALUE_POS), getMapListReturnValueField(VALUE_POS, valueName)))
         .add("))")
         .build();
   }

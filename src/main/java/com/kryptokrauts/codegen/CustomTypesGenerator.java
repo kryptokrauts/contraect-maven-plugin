@@ -92,9 +92,6 @@ public class CustomTypesGenerator {
               .put(abiJsonConfiguration.getCustomTypeTypedefElement(), state));
     }
 
-    // add jackson mapper for custom type
-    customTypes.forEach(typeDefinition -> addJacksonMapper(JsonObject.mapFrom(typeDefinition)));
-
     return customTypes.stream()
         .map(typeDefinition -> generateCustomType(JsonObject.mapFrom(typeDefinition)))
         .collect(Collectors.toList());
@@ -126,10 +123,13 @@ public class CustomTypesGenerator {
     List<Pair<String, TypeName>> fields = new LinkedList<>();
     Object fieldDefinition =
         typeDefinition.getValue(abiJsonConfiguration.getCustomTypeTypedefElement());
+    boolean isVariant = false;
     if (fieldDefinition instanceof JsonObject) {
       JsonObject typedef =
           typeDefinition.getJsonObject(abiJsonConfiguration.getCustomTypeTypedefElement());
       JsonArray record = typedef.getJsonArray(CustomType.RECORD);
+      JsonArray variant = typedef.getJsonArray(CustomType.VARIANT);
+      isVariant = variant != null;
       // if record is defined, it is a custom type
       if (record != null) {
         fields =
@@ -181,7 +181,7 @@ public class CustomTypesGenerator {
         .addMethods(generateCustomTypeConstructors(fields, name))
         .addMethods(generateCustomTypeGetters(fields))
         .addMethods(generateCustomTypeSetters(fields, name))
-        .addMethod(generateEncodeValueMethod(fields, name))
+        .addMethod(generateEncodeValueMethod(fields, name, isVariant))
         .addMethod(generateToString(fields))
         .addMethod(generateEquals(fields, name))
         .addMethod(generateMapToReturnValueMethod(fields, name, isAlias))
@@ -189,22 +189,33 @@ public class CustomTypesGenerator {
   }
 
   private MethodSpec generateEncodeValueMethod(
-      List<Pair<String, TypeName>> fields, String customTypeName) {
-    CodeBlock encodeValueLogic =
-        CodeBlock.builder()
-            .add(" \"{")
-            .add(
-                fields.stream()
-                    .map(
-                        f ->
-                            f.getValue0()
-                                + "=\"+"
-                                + this.datatypeEncodingHandler.encodeParameter(
-                                    f.getValue1(), MP_PARAM + "." + f.getValue0())
-                                + "+\"")
-                    .collect(Collectors.joining(",")))
-            .add("}\"")
-            .build();
+      List<Pair<String, TypeName>> fields, String customTypeName, boolean isVariant) {
+    CodeBlock encodeValueLogic = null;
+    if (isVariant && fields.size() == 1) {
+      Pair<String, TypeName> f = fields.get(0);
+      encodeValueLogic =
+          CodeBlock.builder()
+              .add(
+                  this.datatypeEncodingHandler.encodeParameter(
+                      f.getValue1(), MP_PARAM + "." + f.getValue0()))
+              .build();
+    } else {
+      encodeValueLogic =
+          CodeBlock.builder()
+              .add(" \"{")
+              .add(
+                  fields.stream()
+                      .map(
+                          f ->
+                              f.getValue0()
+                                  + "=\"+"
+                                  + this.datatypeEncodingHandler.encodeParameter(
+                                      f.getValue1(), MP_PARAM + "." + f.getValue0())
+                                  + "+\"")
+                      .collect(Collectors.joining(",")))
+              .add("}\"")
+              .build();
+    }
     // if it is a predefined class use this encoding logic
     if (INSTANCE_PREDEFINED_TYPES.get(customTypeName.toLowerCase()) != null) {
       encodeValueLogic =
