@@ -65,7 +65,7 @@ public class ContraectGenerator {
    *
    * <p>------------------------------
    */
-  private static String GCV_LOGGER = "logger";
+  public static String GCV_LOGGER = "logger";
 
   private static String GCV_DEPLOYED_CONTRACT_ID = "deployedContractId";
 
@@ -337,7 +337,7 @@ public class ContraectGenerator {
                 PARAM_AETERNITY_SERVICE_CONFIGURATION)
             .addStatement("this.$L = $L", GCV_CHECK_BYTECODE, GCV_CHECK_BYTECODE)
             .beginControlFlow("if(this.$L)", GCV_CHECK_BYTECODE)
-            // .addStatement("this.$N()", GCPM_CONTRACT_EXISTS)
+            .addStatement("this.$N()", GCPM_CONTRACT_EXISTS)
             .endControlFlow()
             .build();
 
@@ -767,6 +767,8 @@ public class ContraectGenerator {
     String VAR_CC_DR_RESULT = "dryRunContractCreateResult";
     String VAR_CC_POST_TX_RESULT = "contractCreatePostTransactionResult";
     String VAR_CC_POST_TX_INFO = "contractCreatePostTransactionInfo";
+    String VAR_INIT_FUNC_NAME = "init";
+    String VAR_DR_ERROR_MSG = "dryRunErrorMessage";
 
     this.GCPM_DEPLOY_CONTRACT =
         MethodSpec.methodBuilder("deployContract")
@@ -835,11 +837,28 @@ public class ContraectGenerator {
                         VAR_CC_DR_RESULT,
                         this.codegenConfiguration.getResultRevertKey())
                     .addStatement(
-                        "throw new $T($T.format($S,$L.getContractCallObject().getReturnValue()))",
+                        "$T $L = $L.getContractCallObject().getReturnValue()",
+                        Object.class,
+                        VAR_DR_ERROR_MSG,
+                        VAR_CC_DR_RESULT)
+                    .add(
+                        "try{$L=this.$L.compiler.blockingDecodeCallResult($L,$S,"
+                            + "$L.getContractCallObject().getReturnType(),"
+                            + "$L.getContractCallObject().getReturnValue(),$L).getResult();} catch($T e){}",
+                        VAR_DR_ERROR_MSG,
+                        GCV_AETERNITY_SERVICE,
+                        GCV_AES_SOURCECODE,
+                        VAR_INIT_FUNC_NAME,
+                        VAR_CC_DR_RESULT,
+                        VAR_CC_DR_RESULT,
+                        GCV_AES_INCLUDES,
+                        Exception.class)
+                    .addStatement(
+                        "throw new $T($T.format($S,$L))",
                         IllegalArgumentException.class,
                         String.class,
-                        "Contract could not be deployed due to following exception %s",
-                        VAR_CC_DR_RESULT)
+                        "Contract could not be deployed due to following exception: %s\n",
+                        VAR_DR_ERROR_MSG)
                     .endControlFlow()
                     .addStatement(
                         "$L = $L.toBuilder()"
@@ -1009,7 +1028,7 @@ public class ContraectGenerator {
                         " is not deployed")
                     .endControlFlow()
                     .beginControlFlow(
-                        "if(!$L.equals($L.compiler.blockingCompile($L, null, null)))",
+                        "if(!$L.equals($L.compiler.blockingCompile($L, null, null).getResult()))",
                         VAR_BYTECODE,
                         GCV_AETERNITY_SERVICE,
                         GCV_AES_SOURCECODE)
@@ -1135,6 +1154,7 @@ public class ContraectGenerator {
     String MP_CC_FUNC_NAME = "functionName";
 
     String VAR_DR_RESULTS = "dryRunResults";
+    String VAR_DR_ERROR_MSG = "dryRunErrorMessage";
 
     this.GCPM_DRY_RUN =
         MethodSpec.methodBuilder("dryRunCall")
@@ -1163,11 +1183,29 @@ public class ContraectGenerator {
                     .addStatement("return $L.getResults().get(0)", VAR_DR_RESULTS)
                     .endControlFlow()
                     .addStatement(
-                        "throw new $T($T.format($S,$L,$L.getAeAPIErrorMessage(),$L.getRootErrorMessage(),$S))",
+                        "$T $L = $L.getResults().get(0).getContractCallObject().getReturnValue()",
+                        Object.class,
+                        VAR_DR_ERROR_MSG,
+                        VAR_DR_RESULTS)
+                    .add(
+                        "try{$L=this.$L.compiler.blockingDecodeCallResult($L,$L,"
+                            + "$L.getResults().get(0).getContractCallObject().getReturnType(),"
+                            + "$L.getResults().get(0).getContractCallObject().getReturnValue(),$L).getResult();} catch($T e){}",
+                        VAR_DR_ERROR_MSG,
+                        GCV_AETERNITY_SERVICE,
+                        GCV_AES_SOURCECODE,
+                        MP_CC_FUNC_NAME,
+                        VAR_DR_RESULTS,
+                        VAR_DR_RESULTS,
+                        GCV_AES_INCLUDES,
+                        Exception.class)
+                    .addStatement(
+                        "throw new $T($T.format($S,$L,$L,$L.getAeAPIErrorMessage(),$L.getRootErrorMessage(),$S))",
                         RuntimeException.class,
                         String.class,
-                        "\nDry run call of function %s failed%nCausing Exception: %s%nException Details: %s%nException Hint   : %s",
+                        "\nDry run call of function %s failed: %s\nCausing Exception: %s%nException Details: %s\nException Hint   : %s",
                         MP_CC_FUNC_NAME,
+                        VAR_DR_ERROR_MSG,
                         VAR_DR_RESULTS,
                         VAR_DR_RESULTS,
                         "Please validate your input data")

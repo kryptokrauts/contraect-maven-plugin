@@ -1,5 +1,13 @@
+
 contract CryptoHamster =
    datatype event = NewHamster(indexed int, string, hash)
+
+   type nft_balance = map(int, int)
+
+   datatype prediction_state =
+      CREATED |
+      ACTIVE |
+      CLOSED
 
    record state = { hamsters : map(string, hash), next_id : int }
 

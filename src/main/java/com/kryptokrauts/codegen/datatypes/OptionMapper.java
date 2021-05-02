@@ -16,9 +16,9 @@ import java.util.Optional;
  */
 public class OptionMapper extends AbstractDatatypeMapper {
 
-  private static final String HAS_VALUE_STRING = "Some";
+  public static final String HAS_VALUE_STRING = "Some";
 
-  private static final String HAS_NO_VALUE_STRING = "None";
+  public static final String HAS_NO_VALUE_STRING = "None";
 
   public OptionMapper(DatatypeMappingHandler resolveInstance) {
     super(resolveInstance);

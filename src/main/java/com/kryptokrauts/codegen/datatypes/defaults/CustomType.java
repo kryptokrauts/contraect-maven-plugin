@@ -12,6 +12,8 @@ public interface CustomType {
 
   public static final String RECORD = "record";
 
+  public static final String VARIANT = "variant";
+
   public static final String ADDRESS_TYPE = "address";
 
   public static final String BYTES_TYPE = "bytes";

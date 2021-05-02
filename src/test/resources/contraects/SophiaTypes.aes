@@ -1,5 +1,8 @@
+@compiler >= 4.2
+
 include "List.aes"
 include "Library.aes"
+include "Option.aes"
 
 contract SophiaTypes =
 
@@ -19,6 +22,18 @@ contract SophiaTypes =
          firstname: string,
          lastname: string }
          
+    record complexType = 
+      {  test: option(list(int)),
+      	 test2: option(map(string, int)),
+      	 test3: (int * bool),
+      	 test4: (string * int * int)}
+ 
+    entrypoint testTimestamp() : int =
+    	Chain.timestamp
+ 
+    entrypoint testMapOfMaps(mapofmaps: map(int, map(int, int))) : map(int, map(int, int)) =
+ 		mapofmaps
+ 		
     entrypoint testHash(hashValue: hash) : hash =
         hashValue
     
@@ -95,6 +110,14 @@ contract SophiaTypes =
     
     entrypoint testOracleQuery(oracle_query: oracle_query(string, string)) : oracle_query(string, string) =
     	oracle_query
+    	
+    entrypoint testComplexRecord() : complexType =
+    	let complexReturnValue = {
+    	 test = Some([1,2,3]),
+      	 test2 = Some({["hallo"]=3,["jiojio"]=90832}),
+      	 test3 = (42,true),
+      	 test4 = ("wurst",42,12) }
+      	complexReturnValue
 
     stateful entrypoint testIntStateful(intValue: int) : int =
         intValue
