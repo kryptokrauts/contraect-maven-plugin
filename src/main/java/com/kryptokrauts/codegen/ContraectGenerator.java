@@ -755,7 +755,9 @@ public class ContraectGenerator {
         buildDryRunMethod(),
         buildWaitForTxMethod(),
         buildWaitForTxInfoMethod(),
-        buildDeployContractMethod());
+        buildDeployContractMethod(),
+        buildContractIdGetter(),
+        buildContractIdSetter());
   }
 
   private MethodSpec buildDeployContractMethod() {
@@ -1214,6 +1216,23 @@ public class ContraectGenerator {
             .returns(DryRunTransactionResult.class)
             .build();
     return GCPM_DRY_RUN;
+  }
+
+  private MethodSpec buildContractIdGetter() {
+    return MethodSpec.methodBuilder("getContractId")
+        .addModifiers(Modifier.PUBLIC)
+        .returns(String.class)
+        .addStatement("return $L", GCV_DEPLOYED_CONTRACT_ID)
+        .build();
+  }
+
+  private MethodSpec buildContractIdSetter() {
+    String MP_CONTRACT_ID = "contractId";
+    return MethodSpec.methodBuilder("setContractId")
+        .addModifiers(Modifier.PUBLIC)
+        .addParameter(ParameterSpec.builder(String.class, MP_CONTRACT_ID).build())
+        .addStatement("this.$L = $L", GCV_DEPLOYED_CONTRACT_ID, MP_CONTRACT_ID)
+        .build();
   }
 
   private CodeBlock getParameterEncoding(List<ParameterSpec> params) {
