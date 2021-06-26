@@ -55,7 +55,7 @@ public class CodegenUtil {
           "Func.aes",
           "Pair.aes",
           "Triple.aes",
-          "BLS12_381",
+          "BLS12_381.aes",
           "Frac.aes");
 
   private static final String CREATE_GITHUB_ISSUE =
