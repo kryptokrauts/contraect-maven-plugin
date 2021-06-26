@@ -50,6 +50,8 @@ public class CodegenConfiguration {
   /** indicates an revert of a contract deploy */
   private String resultRevertKey = "revert";
 
+  private long dryRunDeployGas = 50000l;
+
   public AeternityService getAeternityService() {
     if (aeternityService == null) {
       VertxOptions options = new VertxOptions();

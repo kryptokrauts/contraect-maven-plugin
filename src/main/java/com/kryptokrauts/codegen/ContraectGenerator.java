@@ -790,7 +790,7 @@ public class ContraectGenerator {
                             + ".callData($L)"
                             + ".contractByteCode($L)"
                             + ".deposit($T.ZERO)"
-                            + ".gas($T.valueOf(48000000l))"
+                            + ".gas($T.valueOf($Ll))"
                             + ".gasPrice($T.valueOf($T.MINIMAL_GAS_PRICE))"
                             + ".nonce(this.$N())"
                             + ".ownerId(this.$L.getKeyPair().getAddress())"
@@ -805,6 +805,7 @@ public class ContraectGenerator {
                         VAR_BYTECODE,
                         BigInteger.class,
                         BigInteger.class,
+                        this.codegenConfiguration.getDryRunDeployGas(),
                         BigInteger.class,
                         BaseConstants.class,
                         GCPM_NEXT_NONCE,
