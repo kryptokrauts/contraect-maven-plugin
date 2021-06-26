@@ -1,4 +1,11 @@
 include "String.aes"
+include "Option.aes"
+include "List.aes"
+include "Func.aes"
+include "Pair.aes"
+include "Triple.aes"
+include "Frac.aes"
+include "BLS12_381.aes"
 
 contract CryptoHamster =
    datatype event = NewHamster(indexed int, string, hash)
