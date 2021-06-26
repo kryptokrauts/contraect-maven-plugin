@@ -1,7 +1,7 @@
 version: '3'
 services:
   node:
-    image: aeternity/aeternity:${AETERNITY_TAG}
+    image: kryptokrauts/aeternity:${AETERNITY_TAG}
     ports:
       - "3013:3013"
       - "3113:3113"
