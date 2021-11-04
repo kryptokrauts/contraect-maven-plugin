@@ -22,6 +22,8 @@ public class VoidMapper extends AbstractDatatypeMapper {
       if (json.getValue("tuple") != null && json.getValue("tuple") instanceof JsonArray) {
         return JsonObject.mapFrom(typeDefForResolvingInnerClass).getJsonArray("tuple").size() == 0;
       }
+    } else if ("unit".equals(typeDefForResolvingInnerClass)) {
+      return true;
     }
     return false;
   }
