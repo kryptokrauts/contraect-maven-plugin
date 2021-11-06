@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableMap;
 import com.kryptokrauts.codegen.datatypes.DatatypeMappingHandler;
 import com.kryptokrauts.codegen.datatypes.defaults.AddressType;
 import com.kryptokrauts.codegen.datatypes.defaults.BytesType;
+import com.kryptokrauts.codegen.datatypes.defaults.ChainTTLType;
 import com.kryptokrauts.codegen.datatypes.defaults.CustomType;
 import com.kryptokrauts.codegen.datatypes.defaults.HashType;
 import com.kryptokrauts.codegen.datatypes.defaults.OracleQueryType;
@@ -27,6 +28,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.lang.model.element.Modifier;
 import lombok.NonNull;
@@ -60,17 +62,14 @@ public class CustomTypesGenerator {
    * to the generated contract
    */
   public static final Map<String, CustomType> PREDEFINED_TYPES =
-      ImmutableMap.of(
-          CustomType.ADDRESS_TYPE,
-          new AddressType(),
-          CustomType.HASH_TYPE,
-          new HashType(),
-          CustomType.SIGNATURE_TYPE,
-          new SignatureType(),
-          CustomType.ORACLE_TYPE,
-          new OracleType(),
-          CustomType.ORACLE_QUERY_TYPE,
-          new OracleQueryType());
+      ImmutableMap.<String, CustomType>builder()
+          .put(CustomType.ADDRESS_TYPE, new AddressType())
+          .put(CustomType.HASH_TYPE, new HashType())
+          .put(CustomType.SIGNATURE_TYPE, new SignatureType())
+          .put(CustomType.ORACLE_TYPE, new OracleType())
+          .put(CustomType.ORACLE_QUERY_TYPE, new OracleQueryType())
+          .put(CustomType.CHAIN_TTL_TYPE, new ChainTTLType())
+          .build();
 
   private Map<String, CustomType> INSTANCE_PREDEFINED_TYPES = new HashMap<>(PREDEFINED_TYPES);
 
@@ -101,6 +100,7 @@ public class CustomTypesGenerator {
    * if variant is defined, it is an enum, currently mapped just to string with no value checking
    * therefore we need to add this to custom jackson mapping and handle it as normal alias
    */
+  @Deprecated
   private void addJacksonMapper(JsonObject typeDefinition) {
     Object fieldDefinition =
         typeDefinition.getValue(abiJsonConfiguration.getCustomTypeTypedefElement());
@@ -170,26 +170,42 @@ public class CustomTypesGenerator {
             typeDefinition.getString(abiJsonConfiguration.getCustomTypeNameElement()));
 
     List<FieldSpec> additionalFields = new LinkedList<>();
-    if (INSTANCE_PREDEFINED_TYPES.get(name.toLowerCase()) != null) {
-      additionalFields = INSTANCE_PREDEFINED_TYPES.get(name.toLowerCase()).fieldList();
+    List<TypeSpec> additionalInnerTypes = new LinkedList<>();
+    MethodSpec customToStringMethod = generateToString(fields);
+
+    Optional<CustomType> predefinedType =
+        INSTANCE_PREDEFINED_TYPES.entrySet().stream()
+            .filter(n -> n.getKey().toLowerCase().equals(name.toLowerCase()))
+            .map(Map.Entry::getValue)
+            .findFirst();
+    if (predefinedType.isPresent()) {
+      additionalFields = predefinedType.get().fieldList();
+      additionalInnerTypes = predefinedType.get().additionalInnerTypes();
+      if (predefinedType.get().customToStringMethod() != null) {
+        customToStringMethod = predefinedType.get().customToStringMethod();
+      }
     }
 
     return TypeSpec.classBuilder(name)
         .addFields(buildFields(fields))
         .addFields(additionalFields)
         .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-        .addMethods(generateCustomTypeConstructors(fields, name))
+        .addMethods(generateCustomTypeConstructors(fields, name, predefinedType))
         .addMethods(generateCustomTypeGetters(fields))
-        .addMethods(generateCustomTypeSetters(fields, name))
-        .addMethod(generateEncodeValueMethod(fields, name, isVariant))
-        .addMethod(generateToString(fields))
+        .addMethods(generateCustomTypeSetters(fields, name, predefinedType))
+        .addMethod(generateEncodeValueMethod(fields, name, predefinedType, isVariant))
+        .addMethod(customToStringMethod)
         .addMethod(generateEquals(fields, name))
-        .addMethod(generateMapToReturnValueMethod(fields, name, isAlias))
+        .addMethod(generateMapToReturnValueMethod(fields, name, predefinedType, isAlias))
+        .addTypes(additionalInnerTypes)
         .build();
   }
 
   private MethodSpec generateEncodeValueMethod(
-      List<Pair<String, TypeName>> fields, String customTypeName, boolean isVariant) {
+      List<Pair<String, TypeName>> fields,
+      String customTypeName,
+      Optional<CustomType> customType,
+      boolean isVariant) {
     CodeBlock encodeValueLogic = null;
     if (isVariant && fields.size() == 1) {
       Pair<String, TypeName> f = fields.get(0);
@@ -217,11 +233,8 @@ public class CustomTypesGenerator {
               .build();
     }
     // if it is a predefined class use this encoding logic
-    if (INSTANCE_PREDEFINED_TYPES.get(customTypeName.toLowerCase()) != null) {
-      encodeValueLogic =
-          INSTANCE_PREDEFINED_TYPES
-              .get(customTypeName.toLowerCase())
-              .encodeValueCodeblock(MP_PARAM);
+    if (customType.isPresent()) {
+      encodeValueLogic = customType.get().encodeValueCodeblock(MP_PARAM);
     }
 
     return MethodSpec.methodBuilder(M_ENCODE_VALUE)
@@ -235,7 +248,10 @@ public class CustomTypesGenerator {
   }
 
   private MethodSpec generateMapToReturnValueMethod(
-      List<Pair<String, TypeName>> fields, String customTypeName, boolean isAlias) {
+      List<Pair<String, TypeName>> fields,
+      String customTypeName,
+      Optional<CustomType> customType,
+      boolean isAlias) {
 
     String VAR_ATTRIBUTE_MAP = "attributes";
     String VAR_ATTRIBUTE_KEY = "attributeKey";
@@ -322,16 +338,17 @@ public class CustomTypesGenerator {
               .build();
     }
     // if it is a predefined class use this encoding logic
-    if (INSTANCE_PREDEFINED_TYPES.get(customTypeName.toLowerCase()) != null) {
-      returnValueLogic =
-          CodeBlock.builder()
-              .add("return ")
-              .add(
-                  INSTANCE_PREDEFINED_TYPES
-                      .get(customTypeName.toLowerCase())
-                      .mapToReturnValueCodeblock(MP_PARAM))
-              .add(";")
-              .build();
+    if (customType.isPresent()) {
+      if (customType.get().complexReturnTypeMethod()) {
+        returnValueLogic = customType.get().mapToReturnValueCodeblock(MP_PARAM);
+      } else {
+        returnValueLogic =
+            CodeBlock.builder()
+                .add("return ")
+                .add(customType.get().mapToReturnValueCodeblock(MP_PARAM))
+                .add(";")
+                .build();
+      }
     }
 
     return MethodSpec.methodBuilder(M_MAP_TO_RETURN_VALUE)
@@ -343,7 +360,7 @@ public class CustomTypesGenerator {
   }
 
   private List<MethodSpec> generateCustomTypeConstructors(
-      List<Pair<String, TypeName>> fields, String customTypeName) {
+      List<Pair<String, TypeName>> fields, String customTypeName, Optional<CustomType> customType) {
     List<MethodSpec> constructors = new LinkedList<>();
 
     MethodSpec valueConstructor =
@@ -357,9 +374,8 @@ public class CustomTypesGenerator {
             .build();
 
     // if it is a predefined class add constructor logic
-    if (INSTANCE_PREDEFINED_TYPES.get(customTypeName.toLowerCase()) != null) {
-      valueConstructor =
-          INSTANCE_PREDEFINED_TYPES.get(customTypeName.toLowerCase()).constructorMethod();
+    if (customType.isPresent()) {
+      valueConstructor = customType.get().constructorMethod();
     }
     constructors.add(valueConstructor);
     // add default constructor if fields are defined
@@ -459,10 +475,10 @@ public class CustomTypesGenerator {
   }
 
   private List<MethodSpec> generateCustomTypeSetters(
-      List<Pair<String, TypeName>> fields, String customTypeName) {
+      List<Pair<String, TypeName>> fields, String customTypeName, Optional<CustomType> customType) {
 
-    if (INSTANCE_PREDEFINED_TYPES.get(customTypeName.toLowerCase()) != null) {
-      return INSTANCE_PREDEFINED_TYPES.get(customTypeName.toLowerCase()).methodList();
+    if (customType.isPresent()) {
+      return customType.get().methodList();
     }
 
     return fields.stream()

@@ -1,4 +1,4 @@
-@compiler >= 4.2
+@compiler >= 6
 
 include "List.aes"
 include "Library.aes"
@@ -34,6 +34,9 @@ contract SophiaTypes =
     entrypoint testMapOfMaps(mapofmaps: map(int, map(int, int))) : map(int, map(int, int)) =
  		mapofmaps
  		
+    entrypoint testUnit(param : int) : unit =
+    	require(param > 0, "Positive Integer required")
+    
     entrypoint testHash(hashValue: hash) : hash =
         hashValue
     
@@ -157,3 +160,6 @@ contract SophiaTypes =
 
     stateful entrypoint testSignatureStateful(signatureValue: signature) : signature =
         signatureValue
+        
+    stateful entrypoint testTtl(ttl : Chain.ttl) : Chain.ttl =
+    	ttl

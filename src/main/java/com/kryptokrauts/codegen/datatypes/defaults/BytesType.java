@@ -27,7 +27,7 @@ public class BytesType implements CustomType {
     this.className = className;
   }
 
-  protected String MP_LENGTH = "length";
+  protected String CP_LENGTH = "length";
 
   @Override
   public JsonObject getTypeDefinition(ABIJsonConfiguration abiJsonConfiguration) {
@@ -88,7 +88,7 @@ public class BytesType implements CustomType {
   @Override
   public List<FieldSpec> fieldList() {
     return Arrays.asList(
-        FieldSpec.builder(TypeName.INT, MP_LENGTH).initializer(String.valueOf(length * 2)).build());
+        FieldSpec.builder(TypeName.INT, CP_LENGTH).initializer(String.valueOf(length * 2)).build());
   }
 
   private static final String BYTES_PATTERN = "#[0-9A-Fa-f]+(_[0-9A-Fa-f]+)*";
@@ -108,25 +108,25 @@ public class BytesType implements CustomType {
             BYTES_PATTERN)
         .endControlFlow()
         .addStatement("$L=$L.replaceAll($S,$S)", className, className, "_", "")
-        .beginControlFlow("if($L.length() <= $L-1)", className, MP_LENGTH)
+        .beginControlFlow("if($L.length() <= $L-1)", className, CP_LENGTH)
         .addStatement(
             "throw new $T($T.format($S,$L,($L/2)-1,$L-1))",
             InvalidParameterException.class,
             String.class,
             "Bytes value %s must have at least a length of %d (%d characters)",
             className,
-            MP_LENGTH,
-            MP_LENGTH)
+            CP_LENGTH,
+            CP_LENGTH)
         .endControlFlow()
-        .beginControlFlow("if($L.length() > $L+1)", className, MP_LENGTH)
+        .beginControlFlow("if($L.length() > $L+1)", className, CP_LENGTH)
         .addStatement(
             "throw new $T($T.format($S,$L,$L/2,$L))",
             InvalidParameterException.class,
             String.class,
             "Given bytes value %s exceeds maximum length of %d (%d characters)",
             className,
-            MP_LENGTH,
-            MP_LENGTH)
+            CP_LENGTH,
+            CP_LENGTH)
         .endControlFlow()
         .addStatement("this.$L=$L", className, className)
         .build();
