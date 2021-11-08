@@ -48,6 +48,7 @@ public class DatatypeResolverTest extends BaseTest {
 
     Map<String, Object> typeResolvingMap = new HashMap<String, Object>();
     // simple types
+    typeResolvingMap.put("testTtl", targetPackage + "." + datatypeTestClassName + "$ChainTTL");
     typeResolvingMap.put("testInt", TypeName.get(BigInteger.class));
     typeResolvingMap.put("testString", TypeName.get(String.class));
     typeResolvingMap.put("testBool", TypeName.get(Boolean.class));
@@ -121,6 +122,15 @@ public class DatatypeResolverTest extends BaseTest {
         "testOptionList",
         Optional.of(Arrays.asList(BigInteger.valueOf(42), BigInteger.valueOf(200))));
     // custom types
+    ioTestMap.put(
+        "testTtl",
+        getCustomTypeInstance(
+            "ChainTTL",
+            Arrays.asList(BigInteger.class, getCustomTypeClass("ChainTTL$ChainTTLType")),
+            BigInteger.valueOf(42),
+            getCustomTypeClass("ChainTTL$ChainTTLType")
+                .getMethod("valueOf", String.class)
+                .invoke(null, "RelativeTTL")));
     ioTestMap.put(
         "testCompanyAddress",
         getCustomTypeInstance(

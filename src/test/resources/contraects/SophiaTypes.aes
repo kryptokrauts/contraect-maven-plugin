@@ -160,6 +160,9 @@ contract SophiaTypes =
 
     stateful entrypoint testSignatureStateful(signatureValue: signature) : signature =
         signatureValue
+    
+    entrypoint testTtl(ttl : Chain.ttl) : Chain.ttl =
+    	ttl
         
-    stateful entrypoint testTtl(ttl : Chain.ttl) : Chain.ttl =
+    stateful entrypoint testStatefulTtl(ttl : Chain.ttl) : Chain.ttl =
     	ttl
