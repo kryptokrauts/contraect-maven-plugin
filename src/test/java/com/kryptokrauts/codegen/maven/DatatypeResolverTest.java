@@ -29,7 +29,7 @@ public class DatatypeResolverTest extends BaseTest {
 
   private static Object datatypeTestContractInstance;
 
-  Logger log = LoggerFactory.getLogger(DatatypeResolverTest.class);
+  private static Logger log = LoggerFactory.getLogger(DatatypeResolverTest.class);
 
   @BeforeAll
   public static void setup() throws Exception {
