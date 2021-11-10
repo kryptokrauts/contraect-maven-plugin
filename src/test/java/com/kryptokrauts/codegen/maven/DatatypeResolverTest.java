@@ -20,12 +20,16 @@ import java.util.Optional;
 import org.javatuples.Pair;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DatatypeResolverTest extends BaseTest {
 
   private static String datatypeTestClassName = "SophiaTypes";
 
   private static Object datatypeTestContractInstance;
+
+  Logger log = LoggerFactory.getLogger(DatatypeResolverTest.class);
 
   @BeforeAll
   public static void setup() throws Exception {
@@ -37,9 +41,10 @@ public class DatatypeResolverTest extends BaseTest {
         Class.forName(targetPackage + "." + datatypeTestClassName)
             .getConstructor(AeternityServiceConfiguration.class, String.class)
             .newInstance(aeternityServiceConfig, null);
-    System.out.println(
+    log.info(
         "Generated contract class, found instance "
             + Class.forName(targetPackage + "." + datatypeTestClassName));
+    log.info("Generated instance: " + datatypeTestContractInstance);
     datatypeTestContractInstance
         .getClass()
         .getDeclaredMethod("deploy")
