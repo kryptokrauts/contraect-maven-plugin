@@ -272,8 +272,7 @@ public class CustomTypesGenerator {
       CodeBlock initFields = CodeBlock.builder().build();
       for (Pair<String, TypeName> field : fields) {
         initFields =
-            initFields
-                .toBuilder()
+            initFields.toBuilder()
                 .addStatement("$T $L = null", field.getValue1(), field.getValue0())
                 .build();
       }
@@ -296,8 +295,7 @@ public class CustomTypesGenerator {
       CodeBlock mapIndividualFields = CodeBlock.builder().build();
       for (Pair<String, TypeName> field : fields) {
         mapIndividualFields =
-            mapIndividualFields
-                .toBuilder()
+            mapIndividualFields.toBuilder()
                 .beginControlFlow("if($S.equals($L))", field.getValue0(), VAR_ATTRIBUTE_KEY)
                 .addStatement(
                     "$L = $L",
@@ -389,8 +387,7 @@ public class CustomTypesGenerator {
     CodeBlock initializer = CodeBlock.builder().build();
     for (Pair<String, TypeName> pair : fields) {
       initializer =
-          initializer
-              .toBuilder()
+          initializer.toBuilder()
               .addStatement("this.$L = $L", pair.getValue0(), pair.getValue0())
               .build();
     }

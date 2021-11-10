@@ -45,7 +45,8 @@ public interface CustomType {
 
   public default List<FieldSpec> fieldList() {
     return new LinkedList<>();
-  };
+  }
+  ;
 
   public default List<TypeSpec> additionalInnerTypes() {
     return new LinkedList<>();
