@@ -37,6 +37,9 @@ public class DatatypeResolverTest extends BaseTest {
         Class.forName(targetPackage + "." + datatypeTestClassName)
             .getConstructor(AeternityServiceConfiguration.class, String.class)
             .newInstance(aeternityServiceConfig, null);
+    System.out.println(
+        "Generated contract class, found instance "
+            + Class.forName(targetPackage + "." + datatypeTestClassName));
     datatypeTestContractInstance
         .getClass()
         .getDeclaredMethod("deploy")
