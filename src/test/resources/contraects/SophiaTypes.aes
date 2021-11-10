@@ -27,7 +27,10 @@ contract SophiaTypes =
       	 test2: option(map(string, int)),
       	 test3: (int * bool),
       	 test4: (string * int * int)}
- 
+      	 
+    entrypoint testUnit(value : int) : unit =
+ 		()
+ 		
     entrypoint testTimestamp() : int =
     	Chain.timestamp
  
@@ -121,6 +124,9 @@ contract SophiaTypes =
       	 test3 = (42,true),
       	 test4 = ("wurst",42,12) }
       	complexReturnValue
+
+    stateful entrypoint testStatefulUnit(value : int) : unit =
+ 		()
 
     stateful entrypoint testIntStateful(intValue: int) : int =
         intValue
