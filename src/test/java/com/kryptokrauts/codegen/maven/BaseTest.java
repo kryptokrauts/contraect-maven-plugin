@@ -48,15 +48,15 @@ public abstract class BaseTest {
 
     aeternityServiceConfig =
         AeternityServiceConfiguration.configure()
+            .baseUrl(getBaseUrl())
             .compilerBaseUrl(getCompilerBaseUrl())
-            .baseUrl(getNodeBaseUrl())
             .network(Network.LOCAL_IRIS_NETWORK)
             .keyPair(keyPair)
             .targetVM(VirtualMachine.FATE)
             .compile();
   }
 
-  protected static String getNodeBaseUrl() throws MojoExecutionException {
+  protected static String getBaseUrl() throws MojoExecutionException {
     String nodeBaseUrl = System.getenv(AETERNITY_BASE_URL);
     if (nodeBaseUrl == null) {
       throw new MojoExecutionException("ENV variable missing: AETERNITY_BASE_URL");

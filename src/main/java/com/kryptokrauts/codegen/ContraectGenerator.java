@@ -492,8 +492,7 @@ public class ContraectGenerator {
     /** stateful call - add gas and gasPrice to transaction and post */
     if (isStateful) {
       codeBlock =
-          codeBlock
-              .toBuilder()
+          codeBlock.toBuilder()
               .addStatement(
                   "$L = $L.toBuilder()"
                       + ".gas($L.getContractCallObject().getGasUsed())"
@@ -547,8 +546,7 @@ public class ContraectGenerator {
     }
 
     codeBlock =
-        codeBlock
-            .toBuilder()
+        codeBlock.toBuilder()
             .endControlFlow()
             .addStatement(
                 "throw new $T($T.format($S,$L))",
@@ -662,7 +660,8 @@ public class ContraectGenerator {
 
   private List<ParameterSpec> getParameterSpecFromSignature(JsonObject functionDescription) {
     List<ParameterSpec> params =
-        functionDescription.getJsonArray(abiJsonConfiguration.getFunctionArgumentsElement())
+        functionDescription
+            .getJsonArray(abiJsonConfiguration.getFunctionArgumentsElement())
             .stream()
             .map(
                 param -> {

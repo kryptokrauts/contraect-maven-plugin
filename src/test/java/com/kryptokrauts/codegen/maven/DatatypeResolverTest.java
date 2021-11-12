@@ -12,11 +12,16 @@ import com.squareup.javapoet.TypeName;
 import java.io.File;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import javax.tools.JavaCompiler;
 import org.javatuples.Pair;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -27,14 +32,20 @@ public class DatatypeResolverTest extends BaseTest {
 
   private static Object datatypeTestContractInstance;
 
+  private static URLClassLoader classLoader;
+
   @BeforeAll
   public static void setup() throws Exception {
     ContraectGenerator generator = new ContraectGenerator(config, abiJsonDescription);
     generator.generate(
         new File("./src/test/resources/contraects/" + datatypeTestClassName + ".aes")
             .getAbsolutePath());
+
+    // compile generated contract at runtime
+    compileContract();
+
     datatypeTestContractInstance =
-        Class.forName(targetPackage + "." + datatypeTestClassName)
+        Class.forName(targetPackage + "." + datatypeTestClassName, false, classLoader)
             .getConstructor(AeternityServiceConfiguration.class, String.class)
             .newInstance(aeternityServiceConfig, null);
     datatypeTestContractInstance
@@ -48,6 +59,7 @@ public class DatatypeResolverTest extends BaseTest {
 
     Map<String, Object> typeResolvingMap = new HashMap<String, Object>();
     // simple types
+    typeResolvingMap.put("testTtl", targetPackage + "." + datatypeTestClassName + "$ChainTTL");
     typeResolvingMap.put("testInt", TypeName.get(BigInteger.class));
     typeResolvingMap.put("testString", TypeName.get(String.class));
     typeResolvingMap.put("testBool", TypeName.get(Boolean.class));
@@ -68,7 +80,11 @@ public class DatatypeResolverTest extends BaseTest {
         ParameterizedTypeName.get(
             ClassName.get(Map.class),
             TypeName.get(String.class),
-            TypeName.get(Class.forName(targetPackage + "." + datatypeTestClassName + "$Address"))));
+            TypeName.get(
+                Class.forName(
+                    targetPackage + "." + datatypeTestClassName + "$Address",
+                    false,
+                    classLoader))));
     // custom types
     typeResolvingMap.put("testAddress", targetPackage + "." + datatypeTestClassName + "$Address");
     typeResolvingMap.put(
@@ -122,6 +138,15 @@ public class DatatypeResolverTest extends BaseTest {
         Optional.of(Arrays.asList(BigInteger.valueOf(42), BigInteger.valueOf(200))));
     // custom types
     ioTestMap.put(
+        "testTtl",
+        getCustomTypeInstance(
+            "ChainTTL",
+            Arrays.asList(BigInteger.class, getCustomTypeClass("ChainTTL$ChainTTLType")),
+            BigInteger.valueOf(42),
+            getCustomTypeClass("ChainTTL$ChainTTLType")
+                .getMethod("valueOf", String.class)
+                .invoke(null, "RelativeTTL")));
+    ioTestMap.put(
         "testCompanyAddress",
         getCustomTypeInstance(
             "companyAddress",
@@ -166,7 +191,8 @@ public class DatatypeResolverTest extends BaseTest {
 
   private Method getMethod(String functionName) throws Exception {
     for (Method method :
-        Class.forName(targetPackage + "." + datatypeTestClassName).getDeclaredMethods()) {
+        Class.forName(targetPackage + "." + datatypeTestClassName, false, classLoader)
+            .getDeclaredMethods()) {
       if (method.getName().equals(functionName)) {
         return method;
       }
@@ -182,13 +208,27 @@ public class DatatypeResolverTest extends BaseTest {
                 + "."
                 + datatypeTestClassName
                 + "$"
-                + CodegenUtil.getUppercaseClassName(customTypeName))
+                + CodegenUtil.getUppercaseClassName(customTypeName),
+            false,
+            classLoader)
         .getConstructor(
             constructorValuesClasses.toArray(new Class[constructorValuesClasses.size()]))
         .newInstance(constructorValues);
   }
 
   private Class<?> getCustomTypeClass(String name) throws ClassNotFoundException {
-    return Class.forName(targetPackage + "." + datatypeTestClassName + "$" + name);
+    return Class.forName(
+        targetPackage + "." + datatypeTestClassName + "$" + name, false, classLoader);
+  }
+
+  private static void compileContract() throws MalformedURLException {
+
+    JavaCompiler compiler = javax.tools.ToolProvider.getSystemJavaCompiler();
+    compiler.run(
+        null,
+        null,
+        null,
+        targetPath + "/" + targetPackage.replace(".", "/") + "/" + datatypeTestClassName + ".java");
+    classLoader = URLClassLoader.newInstance(new URL[] {Paths.get(targetPath).toUri().toURL()});
   }
 }

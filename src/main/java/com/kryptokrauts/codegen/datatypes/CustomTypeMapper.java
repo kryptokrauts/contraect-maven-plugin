@@ -56,6 +56,7 @@ public class CustomTypeMapper extends AbstractDatatypeMapper {
 
   private String tryResolveSpecialPredefinedCustomTypes(Object type) {
     if (type != null) {
+      // N-Bytes Type
       if (type.toString().contains("bytes")) {
         try {
           JsonObject json = JsonObject.mapFrom(type);
@@ -66,6 +67,10 @@ public class CustomTypeMapper extends AbstractDatatypeMapper {
         } catch (Exception e) {
           e.printStackTrace();
         }
+        // Chain.TTL Type
+      } else if ("Chain.ttl".equals(type)) {
+        return CustomType.CHAIN_TTL_TYPE;
+        // Oracle Types
       } else if (type instanceof JsonObject) {
         JsonObject json = JsonObject.mapFrom(type);
         if (json.containsKey(CustomType.ORACLE_TYPE)) {

@@ -4,6 +4,7 @@ import com.kryptokrauts.codegen.maven.ABIJsonConfiguration;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.TypeSpec;
 import io.vertx.core.json.JsonObject;
 import java.util.LinkedList;
 import java.util.List;
@@ -26,6 +27,8 @@ public interface CustomType {
 
   public static final String ORACLE_QUERY_TYPE = "oracle_query";
 
+  public static final String CHAIN_TTL_TYPE = "ChainTTL";
+
   public JsonObject getTypeDefinition(ABIJsonConfiguration abiJsonConfiguration);
 
   public CodeBlock encodeValueCodeblock(String MP_PARAM);
@@ -34,9 +37,22 @@ public interface CustomType {
 
   public MethodSpec constructorMethod();
 
+  public default boolean complexReturnTypeMethod() {
+    return false;
+  }
+
   public List<MethodSpec> methodList();
 
   public default List<FieldSpec> fieldList() {
     return new LinkedList<>();
-  };
+  }
+  ;
+
+  public default List<TypeSpec> additionalInnerTypes() {
+    return new LinkedList<>();
+  }
+
+  public default MethodSpec customToStringMethod() {
+    return null;
+  }
 }
