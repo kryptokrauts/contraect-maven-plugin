@@ -74,8 +74,9 @@ public class TupleMapper extends AbstractDatatypeMapper {
                       CodeBlock currentListElement =
                           CodeBlock.builder()
                               .add(
-                                  "(($T)$L).get($L)",
+                                  "(($T)(($T)$L).getList()).get($L)",
                                   LIST_WITH_WILDCARD_TYPDEF,
+                                  JsonArray.class,
                                   variableName,
                                   cnt.getAndIncrement())
                               .build();

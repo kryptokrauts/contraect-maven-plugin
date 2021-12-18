@@ -6,7 +6,6 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -50,9 +49,9 @@ public class OptionMapper extends AbstractDatatypeMapper {
     CodeBlock getJsonArrayValue =
         CodeBlock.builder()
             .add(
-                "((($T)((($T)$L).get($S))).get(0))",
+                "((($T)(((($T)$L).getMap()).get($S))).get(0))",
                 LIST_WITH_WILDCARD_TYPDEF,
-                Map.class,
+                JsonObject.class,
                 variableName,
                 HAS_VALUE_STRING)
             .build();
@@ -61,7 +60,7 @@ public class OptionMapper extends AbstractDatatypeMapper {
         .add(
             "($L instanceof $T)?$T.of($L):$T.empty()",
             variableName,
-            Map.class,
+            JsonObject.class,
             Optional.class,
             this.resolveInstance.mapToReturnValue(
                 getOptionInnerType(type), getJsonArrayValue.toString()),

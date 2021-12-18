@@ -46,7 +46,12 @@ public class ListMapper extends AbstractDatatypeMapper {
 
     return CodeBlock.builder()
         .add(
-            "(($T)$L).stream().map($L->",
+            "($L instanceof $T ? (($T)(($T)$L).getList()): ($T)$L).stream().map($L->",
+            variableName,
+            JsonArray.class,
+            LIST_WITH_WILDCARD_TYPDEF,
+            JsonArray.class,
+            variableName,
             LIST_WITH_WILDCARD_TYPDEF,
             variableName,
             uniqueVariableName)

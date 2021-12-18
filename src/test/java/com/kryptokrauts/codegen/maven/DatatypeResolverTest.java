@@ -160,6 +160,8 @@ public class DatatypeResolverTest extends BaseTest {
             Arrays.asList(String.class),
             "ak_2gx9MEFxKvY9vMG5YnqnXWv1hCsX7rgnfvBLJS4aQurustR1rt");
     ioTestMap.put("testAddress", addressInstance);
+    ioTestMap.put("testMapStringAddress", Map.of("test", addressInstance));
+    ioTestMap.put("testMapOfMaps", Map.of(BigInteger.TEN, Map.of(BigInteger.ZERO, BigInteger.TWO)));
     ioTestMap.put(
         "testEmployee",
         getCustomTypeInstance(
