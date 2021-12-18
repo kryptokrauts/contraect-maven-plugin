@@ -50,7 +50,7 @@ public abstract class BaseTest {
         AeternityServiceConfiguration.configure()
             .baseUrl(getBaseUrl())
             .compilerBaseUrl(getCompilerBaseUrl())
-            .network(Network.LOCAL_IRIS_NETWORK)
+            .network(Network.DEVNET)
             .keyPair(keyPair)
             .targetVM(VirtualMachine.FATE)
             .compile();

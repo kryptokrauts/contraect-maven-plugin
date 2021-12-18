@@ -495,7 +495,7 @@ public class ContraectGenerator {
           codeBlock.toBuilder()
               .addStatement(
                   "$L = $L.toBuilder()"
-                      + ".gas($L.getContractCallObject().getGasUsed())"
+                      + ".gasLimit($L.getContractCallObject().getGasUsed())"
                       + ".build()",
                   VAR_CC_MODEL,
                   VAR_CC_MODEL,
@@ -789,8 +789,8 @@ public class ContraectGenerator {
                             + ".callData($L)"
                             + ".contractByteCode($L)"
                             + ".deposit($T.ZERO)"
-                            + ".gas($T.valueOf($Ll))"
-                            + ".gasPrice($T.valueOf($T.MINIMAL_GAS_PRICE))"
+                            + ".gasLimit($T.valueOf($Ll))"
+                            + ".gasPrice($T.MINIMAL_GAS_PRICE)"
                             + ".nonce(this.$N())"
                             + ".ownerId(this.$L.getKeyPair().getAddress())"
                             + ".ttl($T.ZERO)"
@@ -805,7 +805,6 @@ public class ContraectGenerator {
                         BigInteger.class,
                         BigInteger.class,
                         this.codegenConfiguration.getDryRunDeployGas(),
-                        BigInteger.class,
                         BaseConstants.class,
                         GCPM_NEXT_NONCE,
                         GCV_CONFIG,
@@ -864,7 +863,7 @@ public class ContraectGenerator {
                     .endControlFlow()
                     .addStatement(
                         "$L = $L.toBuilder()"
-                            + ".gas($L.getContractCallObject().getGasUsed())"
+                            + ".gasLimit($L.getContractCallObject().getGasUsed())"
                             + ".gasPrice($L.getContractCallObject().getGasPrice())"
                             + ".build()",
                         VAR_CC_MODEL,
@@ -1122,9 +1121,9 @@ public class ContraectGenerator {
                         MP_PARAMS)
                     .addStatement(
                         "return $T.builder().callData($L)"
-                            + ".gas($T.valueOf(1579000l))"
+                            + ".gasLimit($T.valueOf(1579000l))"
                             + ".contractId($L)"
-                            + ".gasPrice($T.valueOf($T.MINIMAL_GAS_PRICE))"
+                            + ".gasPrice($T.MINIMAL_GAS_PRICE)"
                             + ".amount($L!=null?$L:$T.ZERO)"
                             + ".nonce(this.$N())"
                             + ".callerId(this.$L.getKeyPair().getAddress())"
@@ -1135,7 +1134,6 @@ public class ContraectGenerator {
                         VAR_CALLDATA,
                         BigInteger.class,
                         GCV_DEPLOYED_CONTRACT_ID,
-                        BigInteger.class,
                         BaseConstants.class,
                         MP_AMOUNT,
                         MP_AMOUNT,
