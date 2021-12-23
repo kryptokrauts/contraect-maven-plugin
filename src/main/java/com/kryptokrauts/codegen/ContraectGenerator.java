@@ -469,12 +469,13 @@ public class ContraectGenerator {
                 VAR_ENCODED_PARAM_LIST,
                 isPayable ? VAR_CC_AMOUNT : "null")
             .addStatement(
-                "$T $L = this.$N($L,$S)",
+                "$T $L = this.$N($L,$S,$L)",
                 DryRunTransactionResult.class,
                 VAR_DR_RESULT,
                 GCPM_DRY_RUN,
                 VAR_CC_MODEL,
-                functionName)
+                functionName,
+                isStateful)
             .addStatement(
                 "$T $L = this.$L.compiler.blockingDecodeCallResult($L,$S,$L.getContractCallObject().getReturnType(),$L.getContractCallObject().getReturnValue(),$L)",
                 ObjectResultWrapper.class,
@@ -1152,8 +1153,9 @@ public class ContraectGenerator {
   private MethodSpec buildDryRunMethod() {
     String MP_CC_MODEL = "contractCallModel";
     String MP_CC_FUNC_NAME = "functionName";
+    String MP_CC_STATEFUL_FUNC = "isStatefulFunction";
 
-    String VAR_DR_RESULTS = "dryRunResults";
+    String VAR_DR_RESULT = "dryRunResult";
     String VAR_DR_ERROR_MSG = "dryRunErrorMessage";
 
     this.GCPM_DRY_RUN =
@@ -1161,42 +1163,39 @@ public class ContraectGenerator {
             .addParameters(
                 Arrays.asList(
                     ParameterSpec.builder(ContractCallTransactionModel.class, MP_CC_MODEL).build(),
-                    ParameterSpec.builder(String.class, MP_CC_FUNC_NAME).build()))
+                    ParameterSpec.builder(String.class, MP_CC_FUNC_NAME).build(),
+                    ParameterSpec.builder(Boolean.class, MP_CC_STATEFUL_FUNC).build()))
             .addCode(
                 CodeBlock.builder()
                     .addStatement(
-                        "$T $N = $L.transactions.blockingDryRunTransactions($T.builder().build().transactionInputItem($L)"
-                            + ".account($T.builder()"
-                            + ".publicKey(this.$L.getKeyPair().getAddress())"
-                            + ".build()))",
-                        DryRunTransactionResults.class,
-                        VAR_DR_RESULTS,
+                        "$T $N = $L.transactions.blockingDryRunContractCall($L,$L)",
+                        DryRunTransactionResult.class,
+                        VAR_DR_RESULT,
                         GCV_AETERNITY_SERVICE,
-                        DryRunRequest.class,
                         MP_CC_MODEL,
-                        DryRunAccountModel.class,
-                        GCV_CONFIG)
+                        MP_CC_STATEFUL_FUNC)
                     .beginControlFlow(
-                        "if($L.getResults() != null && $L.getResults().size()>0)",
-                        VAR_DR_RESULTS,
-                        VAR_DR_RESULTS)
-                    .addStatement("return $L.getResults().get(0)", VAR_DR_RESULTS)
+                        "if($L != null && $S.equalsIgnoreCase($L.getResult()))",
+                        VAR_DR_RESULT,
+                        "ok",
+                        VAR_DR_RESULT)
+                    .addStatement("return $L", VAR_DR_RESULT)
                     .endControlFlow()
                     .addStatement(
-                        "$T $L = $L.getResults().get(0).getContractCallObject().getReturnValue()",
+                        "$T $L = $L.getContractCallObject().getReturnValue()",
                         Object.class,
                         VAR_DR_ERROR_MSG,
-                        VAR_DR_RESULTS)
+                        VAR_DR_RESULT)
                     .add(
                         "try{$L=this.$L.compiler.blockingDecodeCallResult($L,$L,"
-                            + "$L.getResults().get(0).getContractCallObject().getReturnType(),"
-                            + "$L.getResults().get(0).getContractCallObject().getReturnValue(),$L).getResult();} catch($T e){}",
+                            + "$L.getContractCallObject().getReturnType(),"
+                            + "$L.getContractCallObject().getReturnValue(),$L).getResult();} catch($T e){}",
                         VAR_DR_ERROR_MSG,
                         GCV_AETERNITY_SERVICE,
                         GCV_AES_SOURCECODE,
                         MP_CC_FUNC_NAME,
-                        VAR_DR_RESULTS,
-                        VAR_DR_RESULTS,
+                        VAR_DR_RESULT,
+                        VAR_DR_RESULT,
                         GCV_AES_INCLUDES,
                         Exception.class)
                     .addStatement(
@@ -1206,8 +1205,8 @@ public class ContraectGenerator {
                         "\nDry run call of function %s failed: %s\nCausing Exception: %s%nException Details: %s\nException Hint   : %s",
                         MP_CC_FUNC_NAME,
                         VAR_DR_ERROR_MSG,
-                        VAR_DR_RESULTS,
-                        VAR_DR_RESULTS,
+                        VAR_DR_RESULT,
+                        VAR_DR_RESULT,
                         "Please validate your input data")
                     .build())
             .addModifiers(Modifier.PRIVATE)
