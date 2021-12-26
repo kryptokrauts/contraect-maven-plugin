@@ -619,7 +619,7 @@ public class ContraectGenerator {
             "if($L != null && $L.getResult() instanceof $T)",
             VAR_UNWRAPPED_RESULT_OBJECT,
             VAR_UNWRAPPED_RESULT_OBJECT,
-            Map.class)
+            JsonObject.class)
         .addStatement(
             "$T $L = $T.mapFrom($L.getResult())",
             JsonObject.class,
