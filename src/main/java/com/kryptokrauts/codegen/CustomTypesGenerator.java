@@ -3,6 +3,7 @@ package com.kryptokrauts.codegen;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.kryptokrauts.codegen.datatypes.DatatypeMappingHandler;
+import com.kryptokrauts.codegen.datatypes.defaults.AccountPointeeType;
 import com.kryptokrauts.codegen.datatypes.defaults.AddressType;
 import com.kryptokrauts.codegen.datatypes.defaults.BytesType;
 import com.kryptokrauts.codegen.datatypes.defaults.ChainTTLType;
@@ -10,6 +11,7 @@ import com.kryptokrauts.codegen.datatypes.defaults.CustomType;
 import com.kryptokrauts.codegen.datatypes.defaults.HashType;
 import com.kryptokrauts.codegen.datatypes.defaults.OracleQueryType;
 import com.kryptokrauts.codegen.datatypes.defaults.OracleType;
+import com.kryptokrauts.codegen.datatypes.defaults.PointeeType;
 import com.kryptokrauts.codegen.datatypes.defaults.SignatureType;
 import com.kryptokrauts.codegen.maven.ABIJsonConfiguration;
 import com.squareup.javapoet.ClassName;
@@ -69,6 +71,8 @@ public class CustomTypesGenerator {
           .put(CustomType.ORACLE_TYPE, new OracleType())
           .put(CustomType.ORACLE_QUERY_TYPE, new OracleQueryType())
           .put(CustomType.CHAIN_TTL_TYPE, new ChainTTLType())
+          .put(CustomType.POINTEE_TYPE, new PointeeType())
+          .put(CustomType.ACCOUNT_POINTEE_TYPE, new AccountPointeeType())
           .build();
 
   private Map<String, CustomType> INSTANCE_PREDEFINED_TYPES = new HashMap<>(PREDEFINED_TYPES);
@@ -169,9 +173,12 @@ public class CustomTypesGenerator {
         CodegenUtil.getUppercaseClassName(
             typeDefinition.getString(abiJsonConfiguration.getCustomTypeNameElement()));
 
+    String extendingClass =
+        typeDefinition.getString(abiJsonConfiguration.getCustomTypeExtendingClass(), null);
+
     List<FieldSpec> additionalFields = new LinkedList<>();
     List<TypeSpec> additionalInnerTypes = new LinkedList<>();
-    MethodSpec customToStringMethod = generateToString(fields);
+    MethodSpec customToStringMethod = generateToString(fields, extendingClass != null);
 
     Optional<CustomType> predefinedType =
         INSTANCE_PREDEFINED_TYPES.entrySet().stream()
@@ -186,19 +193,37 @@ public class CustomTypesGenerator {
       }
     }
 
-    return TypeSpec.classBuilder(name)
-        .addFields(buildFields(fields))
-        .addFields(additionalFields)
-        .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-        .addMethods(generateCustomTypeConstructors(fields, name, predefinedType))
-        .addMethods(generateCustomTypeGetters(fields))
-        .addMethods(generateCustomTypeSetters(fields, name, predefinedType))
-        .addMethod(generateEncodeValueMethod(fields, name, predefinedType, isVariant))
-        .addMethod(customToStringMethod)
-        .addMethod(generateEquals(fields, name))
-        .addMethod(generateMapToReturnValueMethod(fields, name, predefinedType, isAlias))
-        .addTypes(additionalInnerTypes)
-        .build();
+    Boolean isAbstact =
+        typeDefinition.getBoolean(abiJsonConfiguration.getCustomTypeAbstractClass(), false);
+
+    List<Modifier> modifiers = new LinkedList<>(List.of(Modifier.PUBLIC, Modifier.STATIC));
+    if (isAbstact) {
+      modifiers.add(Modifier.ABSTRACT);
+    }
+
+    TypeSpec typeSpec =
+        TypeSpec.classBuilder(name)
+            .addFields(buildFields(fields))
+            .addFields(additionalFields)
+            .addModifiers(modifiers.stream().toArray(Modifier[]::new))
+            .addMethods(generateCustomTypeConstructors(fields, name, predefinedType))
+            .addMethods(generateCustomTypeGetters(fields))
+            .addMethods(generateCustomTypeSetters(fields, name, predefinedType))
+            .addMethod(generateEncodeValueMethod(fields, name, predefinedType, isVariant))
+            .addMethod(customToStringMethod)
+            .addMethod(generateEquals(fields, name))
+            .addMethod(generateMapToReturnValueMethod(fields, name, predefinedType, isAlias))
+            .addTypes(additionalInnerTypes)
+            .build();
+
+    if (extendingClass != null) {
+      typeSpec =
+          typeSpec.toBuilder()
+              .superclass(ClassName.get("", CodegenUtil.getUppercaseClassName(extendingClass)))
+              .build();
+    }
+
+    return typeSpec;
   }
 
   private MethodSpec generateEncodeValueMethod(
@@ -394,25 +419,27 @@ public class CustomTypesGenerator {
     return initializer;
   }
 
-  private MethodSpec generateToString(List<Pair<String, TypeName>> fields) {
+  private MethodSpec generateToString(List<Pair<String, TypeName>> fields, boolean extendsOther) {
     return MethodSpec.methodBuilder("toString")
         .returns(TypeName.get(String.class))
         .addModifiers(Modifier.PUBLIC)
         .addStatement(
-            "return "
-                + ((fields != null && fields.size() > 0)
-                    ? fields.stream()
-                        .map(
-                            f ->
-                                "\""
-                                    + f.getValue0()
-                                    + "=\"+(this."
-                                    + f.getValue0()
-                                    + " != null?this."
-                                    + f.getValue0()
-                                    + ".toString():\"\")")
-                        .collect(Collectors.joining("+\",\"+"))
-                    : "\"\""))
+            extendsOther
+                ? "return super.toString()"
+                : "return "
+                    + ((fields != null && fields.size() > 0)
+                        ? fields.stream()
+                            .map(
+                                f ->
+                                    "\""
+                                        + f.getValue0()
+                                        + "=\"+(this."
+                                        + f.getValue0()
+                                        + " != null?this."
+                                        + f.getValue0()
+                                        + ".toString():\"\")")
+                            .collect(Collectors.joining("+\",\"+"))
+                        : "\"\""))
         .build();
   }
 
@@ -496,7 +523,7 @@ public class CustomTypesGenerator {
     return fields.stream()
         .map(
             field ->
-                FieldSpec.builder(field.getValue1(), field.getValue0(), Modifier.PRIVATE).build())
+                FieldSpec.builder(field.getValue1(), field.getValue0(), Modifier.PROTECTED).build())
         .collect(Collectors.toList());
   }
 
