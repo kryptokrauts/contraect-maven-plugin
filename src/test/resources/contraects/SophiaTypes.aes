@@ -117,10 +117,16 @@ contract SophiaTypes =
     entrypoint testComplexRecord() : complexType =
     	let complexReturnValue = {
     	 test = Some([1,2,3]),
-      	 test2 = Some({["hallo"]=3,["jiojio"]=90832}),
+      	 test2 = Some({["somekey"]=3,["someOtherKey"]=90832}),
       	 test3 = (42,true),
-      	 test4 = ("wurst",42,12) }
+      	 test4 = ("anotherString",42,12) }
       	complexReturnValue
+     
+    entrypoint getPointee(ptr : AENS.pointee) : option(AENS.pointee) =
+    	None
+    
+    entrypoint getAENS(name : string) : option(AENS.name) =
+  		AENS.lookup(name)
 
     stateful entrypoint testStatefulUnit(value : int) : unit =
  		()

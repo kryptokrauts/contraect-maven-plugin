@@ -77,4 +77,10 @@ public class ABIJsonConfiguration {
 
   /** name of the json element identifying a fields type within a custom type */
   private String customTypeTypedefTypeElement = "type";
+
+  /** identifing an abstract class */
+  private String customTypeAbstractClass = "abstract";
+
+  /** identifing extending class */
+  private String customTypeExtendingClass = "extends";
 }

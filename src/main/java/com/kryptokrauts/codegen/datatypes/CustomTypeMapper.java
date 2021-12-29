@@ -71,6 +71,10 @@ public class CustomTypeMapper extends AbstractDatatypeMapper {
       } else if ("Chain.ttl".equals(type)) {
         return CustomType.CHAIN_TTL_TYPE;
         // Oracle Types
+      }
+      // AENS.pointee type
+      else if ("AENS.pointee".equals(type)) {
+        return CustomType.POINTEE_TYPE;
       } else if (type instanceof JsonObject) {
         JsonObject json = JsonObject.mapFrom(type);
         if (json.containsKey(CustomType.ORACLE_TYPE)) {

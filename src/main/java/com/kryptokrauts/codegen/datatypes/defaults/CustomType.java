@@ -29,6 +29,10 @@ public interface CustomType {
 
   public static final String CHAIN_TTL_TYPE = "ChainTTL";
 
+  public static final String POINTEE_TYPE = "Pointee";
+
+  public static final String ACCOUNT_POINTEE_TYPE = "AccountPt";
+
   public JsonObject getTypeDefinition(ABIJsonConfiguration abiJsonConfiguration);
 
   public CodeBlock encodeValueCodeblock(String MP_PARAM);
