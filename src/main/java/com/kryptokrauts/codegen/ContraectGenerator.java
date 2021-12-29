@@ -1122,26 +1122,20 @@ public class ContraectGenerator {
                         MP_PARAMS)
                     .addStatement(
                         "return $T.builder().callData($L)"
-                            + ".gasLimit($T.valueOf(1579000l))"
                             + ".contractId($L)"
-                            + ".gasPrice($T.MINIMAL_GAS_PRICE)"
                             + ".amount($L!=null?$L:$T.ZERO)"
                             + ".nonce(this.$N())"
                             + ".callerId(this.$L.getKeyPair().getAddress())"
-                            + ".ttl($T.ZERO)"
                             + ".virtualMachine(this.$L.getTargetVM())"
                             + ".build()",
                         ContractCallTransactionModel.class,
                         VAR_CALLDATA,
-                        BigInteger.class,
                         GCV_DEPLOYED_CONTRACT_ID,
-                        BaseConstants.class,
                         MP_AMOUNT,
                         MP_AMOUNT,
                         BigInteger.class,
                         GCPM_NEXT_NONCE,
                         GCV_CONFIG,
-                        BigInteger.class,
                         GCV_CONFIG)
                     .build())
             .returns(ContractCallTransactionModel.class)
