@@ -605,10 +605,7 @@ public class ContraectGenerator {
 
     return CodeBlock.builder()
         .addStatement(
-            isStateful ? "" : "$T $L = $L.getResult()",
-            Object.class,
-            VAR_UNWRAPPED_RESULT_OBJECT,
-            VAR_RESULT_OBJECT)
+            "$T $L = $L.getResult()", Object.class, VAR_UNWRAPPED_RESULT_OBJECT, VAR_RESULT_OBJECT)
         .add(checkResultCodeblock(VAR_RESULT_OBJECT, VAR_UNWRAPPED_RESULT_OBJECT, functionName))
         .add(returnStatement)
         .build();
