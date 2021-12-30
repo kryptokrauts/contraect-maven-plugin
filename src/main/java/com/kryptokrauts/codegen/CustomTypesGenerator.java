@@ -3,6 +3,7 @@ package com.kryptokrauts.codegen;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.kryptokrauts.codegen.datatypes.DatatypeMappingHandler;
+import com.kryptokrauts.codegen.datatypes.defaults.AENSNameType;
 import com.kryptokrauts.codegen.datatypes.defaults.AddressType;
 import com.kryptokrauts.codegen.datatypes.defaults.BytesType;
 import com.kryptokrauts.codegen.datatypes.defaults.ChainTTLType;
@@ -71,6 +72,7 @@ public class CustomTypesGenerator {
           .put(CustomType.ORACLE_QUERY_TYPE, new OracleQueryType())
           .put(CustomType.CHAIN_TTL_TYPE, new ChainTTLType())
           .put(CustomType.POINTEE_TYPE, new PointeeType())
+          .put(CustomType.AENS_NAME_TYPE, new AENSNameType())
           .build();
 
   private Map<String, CustomType> INSTANCE_PREDEFINED_TYPES = new HashMap<>(PREDEFINED_TYPES);

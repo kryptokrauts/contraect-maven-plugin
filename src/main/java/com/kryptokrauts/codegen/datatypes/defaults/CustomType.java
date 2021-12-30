@@ -31,6 +31,8 @@ public interface CustomType {
 
   public static final String POINTEE_TYPE = "Pointee";
 
+  public static final String AENS_NAME_TYPE = "Name";
+
   public JsonObject getTypeDefinition(ABIJsonConfiguration abiJsonConfiguration);
 
   public CodeBlock encodeValueCodeblock(String MP_PARAM);

@@ -20,11 +20,11 @@ import javax.lang.model.element.Modifier;
 
 public class ChainTTLType implements CustomType {
 
-  protected String CP_TTL = "ttl";
+  private static final String CP_TTL = "ttl";
 
-  protected String TTL_TYPE_ENUM = "ChainTTLType";
+  private static final String TTL_TYPE_ENUM = "ChainTTLType";
 
-  protected String CP_TTL_TYPE = "ttlType";
+  private static final String CP_TTL_TYPE = "ttlType";
 
   @Override
   public JsonObject getTypeDefinition(ABIJsonConfiguration abiJsonConfiguration) {

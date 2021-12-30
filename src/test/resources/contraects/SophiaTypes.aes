@@ -125,8 +125,8 @@ contract SophiaTypes =
     entrypoint getPointee(ptr : AENS.pointee) : option(AENS.pointee) =
     	None
     
-    entrypoint getAENS(name : string) : option(AENS.name) =
-  		AENS.lookup(name)
+    entrypoint getAENS(name : AENS.name) : AENS.name =
+  		name
 
     stateful entrypoint testStatefulUnit(value : int) : unit =
  		()
