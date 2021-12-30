@@ -102,6 +102,16 @@ public class PointeeType implements CustomType {
   }
 
   @Override
+  public MethodSpec customToStringMethod() {
+    return MethodSpec.methodBuilder("toString")
+        .returns(String.class)
+        .addModifiers(Modifier.PUBLIC)
+        .addStatement(
+            "return $S+this.$L+$S+this.$L.getAddress()+$S", "{", CP_TYPE, "=", ADDRESS_TYPE, "}")
+        .build();
+  }
+
+  @Override
   public List<MethodSpec> methodList() {
     String MP_PARAM = "p";
     String P_JSONOBJECT = "jsonObject";
