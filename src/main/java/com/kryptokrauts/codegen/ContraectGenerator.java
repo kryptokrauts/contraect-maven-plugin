@@ -247,25 +247,21 @@ public class ContraectGenerator {
                           GCV_AES_INCLUDES,
                           Modifier.PRIVATE)
                       .initializer(
-                          "$T.of($L)",
-                          ImmutableMap.class,
-                          includes.keySet().stream()
-                              .map(
-                                  libToInclude ->
-                                      "\""
-                                          + libToInclude
-                                          + "\""
-                                          + ","
-                                          + "\""
-                                          + includes
-                                              .get(libToInclude)
-                                              .replaceAll(
-                                                  System.lineSeparator(),
-                                                  System.lineSeparator()
-                                                      .replace("\r", "\\\\r")
-                                                      .replace("\n", "\\\\n"))
-                                          + "\"")
-                              .collect(Collectors.joining(",")))
+                          CodeBlock.builder()
+                              .add("$T.of(", ImmutableMap.class)
+                              .add(
+                                  CodeBlock.join(
+                                      includes.keySet().stream()
+                                          .map(
+                                              libToInclude ->
+                                                  CodeBlock.of(
+                                                      "$S,$S",
+                                                      libToInclude,
+                                                      includes.get(libToInclude)))
+                                          .collect(Collectors.toList()),
+                                      ""))
+                              .addStatement(")")
+                              .build())
                       .build())
               .addField(
                   FieldSpec.builder(Logger.class, GCV_LOGGER, Modifier.PRIVATE, Modifier.STATIC)
