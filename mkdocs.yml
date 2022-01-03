@@ -2,16 +2,43 @@
 site_name: "contraect-maven-plugin"
 site_description: |
   The contraect-maven-plugin is a community developed maven plugin to generate java classes for smart contracts from sophia source code. The generated classes make use of the aepp-sdk-java and provide methods to deploy contracts and call the respective entrypoint functions.
+use_directory_urls: false
 # Repository
 repo_name: 'kryptokrauts/contraect-maven-plugin'
 repo_url: 'https://github.com/kryptokrauts/contraect-maven-plugin'
 
 # Theme
 theme:
-  name: readthedocs
+  name: material
+  language: en
+  palette:
+    - scheme: default
+      primary: green
+      accent: green
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - scheme: slate
+      primary: green
+      accent: green
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - content.tabs.link
+    - search.highlight
+    - search.share
+    - search.suggest
+  # Don't include MkDocs' JavaScript
+  include_search_page: false
+  search_index_only: true
 
 extra:
   repo_icon: 'github'
+
+markdown_extensions:
+  - pymdownx.highlight
+  - pymdownx.superfences
 
 # Navigation
 nav:

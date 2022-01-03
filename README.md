@@ -14,12 +14,12 @@ The generated classes make use of the [aepp-sdk-java](https://github.com/kryptok
 - datatype tuple > 10 is not supported
 
 ## Latest release
- [ ![Download](https://api.bintray.com/packages/kryptokrauts/maven/contraect-maven-plugin/images/download.svg) ](https://bintray.com/kryptokrauts/maven/contraect-maven-plugin/_latestVersion)
- - [changelog](docs/changelog.md)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.kryptokrauts/contraect-maven-plugin/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.kryptokrauts/contraect-maven-plugin)
+- [changelog](docs/changelog.md)
 
 ## Documentation
-The documentation is hosted on gitbook:
-- https://kryptokrauts.gitbook.io/contraect-maven-plugin
+The documentation placed in the `/docs` folder is generated via MkDocs and served via gh-pages:
+- https://kryptokrauts.github.io/contraect-maven-plugin
 
 ## License
 
