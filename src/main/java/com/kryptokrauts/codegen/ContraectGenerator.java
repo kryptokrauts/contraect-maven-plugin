@@ -1052,10 +1052,14 @@ public class ContraectGenerator {
         MethodSpec.methodBuilder("getNextNonce")
             .addCode(
                 CodeBlock.builder()
+                    .beginControlFlow("try")
                     .addStatement(
-                        "return this.$L.accounts.blockingGetAccount().getNonce().add($T.ONE)",
-                        GCV_AETERNITY_SERVICE,
-                        BigInteger.class)
+                        "return this.$L.accounts.blockingGetNextNonce()", GCV_AETERNITY_SERVICE)
+                    .nextControlFlow("catch($T e)", Exception.class)
+                    .addStatement(
+                        "logger.warn(\"Error obtaining next nonce for account. Assuming that account doesn't exist.\")")
+                    .addStatement("return $T.ONE", BigInteger.class)
+                    .endControlFlow()
                     .build())
             .returns(BigInteger.class)
             .addModifiers(Modifier.PRIVATE)
@@ -1158,7 +1162,7 @@ public class ContraectGenerator {
             .addCode(
                 CodeBlock.builder()
                     .addStatement(
-                        "$T $N = $L.transactions.blockingDryRunContractTx($L,$L)",
+                        "$T $N = $L.transactions.blockingDryRunContractTx($L,!$L)",
                         DryRunTransactionResult.class,
                         VAR_DR_RESULT,
                         GCV_AETERNITY_SERVICE,
