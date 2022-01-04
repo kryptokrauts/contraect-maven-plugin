@@ -1158,7 +1158,7 @@ public class ContraectGenerator {
             .addCode(
                 CodeBlock.builder()
                     .addStatement(
-                        "$T $N = $L.transactions.blockingDryRunContractCall($L,$L)",
+                        "$T $N = $L.transactions.blockingDryRunContractTx($L,$L)",
                         DryRunTransactionResult.class,
                         VAR_DR_RESULT,
                         GCV_AETERNITY_SERVICE,
