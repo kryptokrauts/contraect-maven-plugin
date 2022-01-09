@@ -14,7 +14,7 @@ The generated classes make use of the [aepp-sdk-java](https://github.com/kryptok
 - datatype tuple > 10 is not supported
 
 ## Latest release
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.kryptokrauts/contraect-maven-plugin/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.kryptokrauts/contraect-maven-plugin)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.kryptokrauts/contraect-maven-plugin/badge.svg)](https://mvnrepository.com/artifact/com.kryptokrauts/contraect-maven-plugin)
 - [changelog](docs/changelog.md)
 
 ## Documentation

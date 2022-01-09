@@ -44,3 +44,8 @@ markdown_extensions:
 nav:
   - Getting Started: index.md
   - Changelog: changelog.md
+  - Use the plugin:
+      - Plugin configuration: use-the-plugin/plugin-configuration.md
+      - Plugin execution: use-the-plugin/plugin-execution.md
+      - Error codes: use-the-plugin/error-codes.md
+  - Contræct interaction: contract-interaction.md
