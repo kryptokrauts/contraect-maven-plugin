@@ -47,7 +47,7 @@
 		<dependency>
 			<groupId>com.kryptokrauts</groupId>
 			<artifactId>aepp-sdk-java</artifactId>
-			<version>3.0.0-SNAPSHOT</version>
+			<version>3.0.0</version>
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
