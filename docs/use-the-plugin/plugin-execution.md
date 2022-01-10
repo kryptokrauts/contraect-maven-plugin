@@ -1,6 +1,6 @@
 # Plugin execution
 ## Generate Java classes
-The following mvn command can be used to explicitly generate the Java classes based on given contracts
+The following mvn command can be used to explicitly generate the Java classes based on given contracts:
 ```sh
 mvn contraect:generate-contraects
 ```
