@@ -28,7 +28,7 @@ also the result is parsed to a Java type (if possible)
 
 To add the contræct-maven-plugin to you build, simply add the following snippet to your *pom.xml*
 
-```
+```xml
 <build>
 	<plugins>
 		<plugin>
