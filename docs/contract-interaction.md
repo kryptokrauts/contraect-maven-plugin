@@ -6,7 +6,7 @@ The generated Java classes hide all the operations needed to interact with smart
 Without this configuration we wouldn't know to which compiler and to which node we should perform the necessary requests.
 
 In this example we use the CryptoHamster sample from the [contræcts app](https://studio.aepps.com/) which we want to execute on our local æternity node
-```
+```java
 import com.kryptokrauts.aeternity.sdk.constants.Network;
 import com.kryptokrauts.aeternity.sdk.constants.VirtualMachine;
 import com.kryptokrauts.aeternity.sdk.service.aeternity.AeternityServiceConfiguration;
