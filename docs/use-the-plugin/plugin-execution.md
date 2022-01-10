@@ -8,7 +8,7 @@ mvn contraect:generate-contraects
 After the plugin execution you should find the generated Java classes in the folder you specified through the configuration property targetPath.
 
 Alternatively the default maven lifecycle phase generate-sources can be called - therefore the plugin configuration has to be as follows
-```
+```xml
 <plugin>
   <groupId>com.kryptokrauts</groupId>
   <artifactId>contraect-maven-plugin</artifactId>
