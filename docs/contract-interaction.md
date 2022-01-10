@@ -7,21 +7,16 @@ Without this configuration we wouldn't know to which compiler and to which node 
 
 In this example we use the CryptoHamster sample from the [contræcts app](https://studio.aepps.com/) which we want to execute on our local æternity node
 ```java
-import com.kryptokrauts.aeternity.sdk.constants.Network;
-import com.kryptokrauts.aeternity.sdk.constants.VirtualMachine;
-import com.kryptokrauts.aeternity.sdk.service.aeternity.AeternityServiceConfiguration;
-import com.kryptokrauts.aeternity.sdk.service.aeternity.AeternityServiceFactory;
-import com.kryptokrauts.aeternity.sdk.service.aeternity.impl.AeternityService;
-import com.kryptokrauts.contracts.CryptoHamster;
+KeyPairService keyPairService = new KeyPairServiceFactory().getService();
+KeyPair keyPair = keyPairService.recoverKeyPair(<privateKey>);
 
 AeternityServiceConfiguration config = AeternityServiceConfiguration
 				.configure()
-                .compilerBaseUrl("http://localhost:3080")
 				.baseUrl("http://localhost")
+                .compilerBaseUrl("http://localhost:3080")
                 .mdwBaseUrl("http://localhost:4000")
-                .baseKeyPair(baseKeyPair)
 				.network(Network.DEVNET)
-                .targetVM(VirtualMachine.FATE)
+                .keyPair(keyPair)
 				.compile();
 
 // get an instance of the generated contract object				
