@@ -29,7 +29,7 @@ This is an example for the minimal required configuration that only provides the
 ```
 
 ### Codegen configuration block
-The *\<codegen>* configuration block contains the general parameters for the plugin
+The `<codegen>` configuration block contains the general parameters for the plugin.
 
 | Parameter                                                                               | Description                                                               | Default                                          | Sample                                                          |
 | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------ | --------------------------------------------------------------- |
