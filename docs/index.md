@@ -49,7 +49,7 @@ The content of the `<configuration>` section is covered in the Plugin configurat
 
 Under the hood the plugin as well as the generated classes make use of the aepp-sdk-java to implement the interaction with the aeternity node. Therefore the dependency needs to be declared in the corresponding section - please make sure to always use the latest version of the SDK.
 
-```
+```xml
 <dependency>
 	<groupId>com.kryptokrauts</groupId>
 	<artifactId>aepp-sdk-java</artifactId>
