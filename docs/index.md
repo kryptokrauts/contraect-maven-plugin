@@ -43,7 +43,7 @@ To add the contræct-maven-plugin to you build, simply add the following snippet
 	</plugins>
 </build>
 ```
-The content of the *\<configuration>* section is covered in the Plugin configuration
+The content of the `<configuration>` section is covered in the Plugin configuration
 
 ### aepp-sdk-java
 
