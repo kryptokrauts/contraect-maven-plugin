@@ -34,7 +34,7 @@ Generate classes directly into the regular source folder by defining `src/main/j
 **Note**: with this solution you will probably end up having the generated files committed to the repo.
 ### Option 3
 Add the resources using the [build-helper-maven-plugin](https://www.mojohaus.org/build-helper-maven-plugin/index.html)
-```
+```xml
 <plugin>
   <groupId>org.codehaus.mojo</groupId>
   <artifactId>build-helper-maven-plugin</artifactId>
