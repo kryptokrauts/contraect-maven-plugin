@@ -46,7 +46,7 @@ The `<codegen>` configuration block contains the general parameters for the plug
 | resultRevertKey                                                                         | indicates an revert of a contract deploy                                  | `revert`                                         |                                                                 |
 
 ### ABI-JSON configuration block
-The *\<abi-json>* configuration block defines the json key names which are used to parse the contract code. The listed elements are used to parse the contracts JSON ABI and further transform this into the resulting contract java class. Typically this part of the configuration can be completely ommitted unless the basic layout of the sophia contract ABI does not change.
+The `<abi-json>` configuration block defines the json key names which are used to parse the contract code. The listed elements are used to parse the contracts JSON ABI and further transform this into the resulting contract java class. Typically this part of the configuration can be completely ommitted unless the basic layout of the sophia contract ABI does not change.
 
 | Parameter                    | Description                                      | Default   |
 | ---------------------------- | ------------------------------------------------ | --------- |
