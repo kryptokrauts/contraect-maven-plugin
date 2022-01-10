@@ -1,6 +1,7 @@
 # Getting started
 
-The **contræct-maven-plugin** is a maven/gradle plugin that simplifies interacting with smart contracts on the aeternity blockchain. It generates Java classes out of the sophia contract sourcecode which provide a convenient to deploy a contract on the chain or call a function.
+The **contræct-maven-plugin** is a maven plugin that simplifies interacting with smart contracts on the aeternity blockchain. It generates Java classes out of the sophia contract sourcecode which provide a convenient to deploy a contract on the chain or call a function.
+
 It also wraps the input and output objects of those function calls - no parsing is necessary.
 
 ## Detail description
