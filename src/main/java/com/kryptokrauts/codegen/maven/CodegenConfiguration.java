@@ -1,5 +1,6 @@
 package com.kryptokrauts.codegen.maven;
 
+import com.kryptokrauts.aeternity.sdk.constants.BaseConstants;
 import com.kryptokrauts.aeternity.sdk.service.aeternity.AeternityServiceConfiguration;
 import com.kryptokrauts.aeternity.sdk.service.aeternity.AeternityServiceFactory;
 import com.kryptokrauts.aeternity.sdk.service.aeternity.impl.AeternityService;
@@ -61,12 +62,16 @@ public class CodegenConfiguration {
           .setClassPathResolvingEnabled(false);
       options.getMetricsOptions().setEnabled(false);
       Vertx vertxInstance = Vertx.vertx(options);
+      String compilerUrl = this.compilerBaseUrl;
+      if (compilerUrl == null || compilerUrl.trim().length() == 0) {
+        compilerUrl = BaseConstants.DEFAULT_TESTNET_COMPILER_URL;
+      }
       aeternityService =
           new AeternityServiceFactory()
               .getService(
                   AeternityServiceConfiguration.configure()
                       .vertx(vertxInstance)
-                      .compilerBaseUrl(this.compilerBaseUrl)
+                      .compilerBaseUrl(compilerUrl)
                       .compile());
     }
     return aeternityService;
