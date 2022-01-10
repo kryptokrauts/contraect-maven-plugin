@@ -2,7 +2,7 @@
 
 ## [v2.0.0](https://github.com/kryptokrauts/contraect-maven-plugin/releases/tag/v2.0.0)
 
-This release introduces type mapping support for the [æternity naming system (AENS)](https://aeternity.com/protocol/AENS.html) and ChainTTL as well as improvements, better error handling and known issues. This release is improved and adapted to the [v3.0.0](https://github.com/kryptokrauts/aepp-sdk-java/releases/tag/v3.0.0) of the [aepp-sdk-java](https://github.com/kryptokrauts/aepp-sdk-java).
+This release introduces type mapping support for the [æternity naming system (AENS)](https://aeternity.com/protocol/AENS.html) and ChainTTL as well as improvements, better error handling and fixes for known issues. This release is improved and adapted to the [v3.0.0](https://github.com/kryptokrauts/aepp-sdk-java/releases/tag/v3.0.0) of the [aepp-sdk-java](https://github.com/kryptokrauts/aepp-sdk-java).
 
 ### Bugfixes
 - [#39](https://github.com/kryptokrauts/contraect-maven-plugin/issues/39) an NPE can occur if waiting for the tx leads to "Tx not mined"
