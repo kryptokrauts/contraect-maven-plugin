@@ -26,7 +26,7 @@ This is an example for the minimal required configuration that only provides the
 		</execution>
 	</executions>
 </plugin>
-```
+```xml
 
 ### Codegen configuration block
 The `<codegen>` configuration block contains the general parameters for the plugin.
@@ -44,6 +44,7 @@ The `<codegen>` configuration block contains the general parameters for the plug
 | resultAbortKey                                                                          | indicates the abort case of a function call, also applies for dryRun call | `abort`                                          |                                                                 |
 | resultErrorKeyindicates the error case of a function call, also applies for dryRun call | error                                                                     |                                                  |                                                                 |
 | resultRevertKey                                                                         | indicates an revert of a contract deploy                                  | `revert`                                         |                                                                 |
+| dryRunDeployGas | gas limit for the contract deploy method | 50000 |
 
 ### ABI-JSON configuration block
 The `<abi-json>` configuration block defines the json key names which are used to parse the contract code. The listed elements are used to parse the contracts JSON ABI and further transform this into the resulting contract java class. Typically this part of the configuration can be completely ommitted unless the basic layout of the sophia contract ABI does not change.
