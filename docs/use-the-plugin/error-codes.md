@@ -1,7 +1,7 @@
 #Error codes
 During the contract class generation process, on of the following error codes might occur. In every case, a detailed message is displayed. 
 
-If you face such an error occurs, you're welcome to help improving the contraect-maven-plugin. Therefore, please create an issue on [contraect-maven-plugin](https://github.com/kryptokrauts/contraect-maven-plugin) along with your contract code and the arguments displayed in the error message.
+If you face such an error, you're welcome to help improving the contraect-maven-plugin. Therefore, please create an issue on [contraect-maven-plugin](https://github.com/kryptokrauts/contraect-maven-plugin) along with your contract code and the arguments displayed in the error message.
 
 #### 005 - FAIL_IMPORT_INCLUDES
 Indicates an error concering a library or contract include
