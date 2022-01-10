@@ -20,7 +20,8 @@ also the result is parsed to a Java type (if possible)
 
 ## System requirements
 
-- System requirements of the [Java SDK](https://oss.sonatype.org/content/repositories/)
+- System requirements of the [Java SDK](https://kryptokrauts.github.io/aepp-sdk-java/v3.0.0/index.html#system-requirements)
+
 
 ## Include dependencies
 
