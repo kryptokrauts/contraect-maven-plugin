@@ -5,7 +5,7 @@ Most of the configuration parameters are shipped with default values, which in a
 
 ### Example
 This is an example for the minimal required configuration that only provides the required parameters:
-```
+```xml
 <plugin>
   <groupId>com.kryptokrauts</groupId>
   <artifactId>contraect-maven-plugin</artifactId>
@@ -26,7 +26,7 @@ This is an example for the minimal required configuration that only provides the
 		</execution>
 	</executions>
 </plugin>
-```xml
+```
 
 ### Codegen configuration block
 The `<codegen>` configuration block contains the general parameters for the plugin.
