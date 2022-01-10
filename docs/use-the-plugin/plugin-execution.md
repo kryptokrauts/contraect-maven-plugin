@@ -29,7 +29,7 @@ Alternatively the default maven lifecycle phase generate-sources can be called -
 Add the folder containing the generated Java classes manually as source-folder within your IDE.
 
 ### Option 2
-Generate classes directly into the regular source folder by defining *src/main/java* as **targetPath**.
+Generate classes directly into the regular source folder by defining `src/main/java` as `targetPath`.
 
 **Note**: with this solution you will probably end up having the generated files committed to the repo.
 ### Option 3
