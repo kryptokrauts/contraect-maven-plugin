@@ -56,7 +56,8 @@ public class CodegenUtil {
           "Pair.aes",
           "Triple.aes",
           "BLS12_381.aes",
-          "Frac.aes");
+          "Frac.aes",
+          "Set.aes");
 
   private static final String CREATE_GITHUB_ISSUE =
       "Please create an issue on https://github.com/kryptokrauts/contraect-maven-plugin along with your contract code and the following arguments";
